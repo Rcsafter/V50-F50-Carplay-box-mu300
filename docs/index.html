@@ -440,7 +440,13 @@
   <div class="step">
     <p class="h"><span class="idx">7.3</span>同时添加「系统切换器」插件</p>
     <div class="body">
-      <p>同一个页面加上系统切换器插件。它做的是 <strong>Android ↔ OpenWrt 双系统切换</strong>：刷完之后如果 OpenWrt 有问题，可以用它切回 Android，是后面救砖的关键入口，现在先装上。</p>
+      <p>同一个页面加上系统切换器插件。<strong>它是 Android 这边「切到 OpenWrt」的开关</strong>——刷完之后就是从这里进新系统。</p>
+      <p><strong>两个方向、两个入口，别搞混：</strong></p>
+      <ul>
+        <li><strong>Android → OpenWrt</strong>：用这个插件，在高级后台里点一下</li>
+        <li><strong>OpenWrt → Android</strong>：用 OpenWrt 后台自带的功能，不在这个插件里</li>
+      </ul>
+      <p>两个系统是<strong>并存</strong>的，不是覆盖关系：切过去之后 Android 那套装的东西还在，随时能切回来。想用哪个就待在哪个，这也是它最值钱的地方——刷崩了有退路。</p>
       <p>插件下载地址在 <code>https://pan.quark.cn/s/05c6a09772ad</code>（提取码 <code>HnJc</code>）。</p>
     </div>
   </div>
@@ -488,6 +494,14 @@
     <div class="body">
       <p>盒子连电脑，打开安装器，选好镜像，按界面提示开始写入。</p>
       <p>写入过程会重启几次，<strong>全程不要拔线、不要断电</strong>。看到完成提示再拔。</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <p class="h"><span class="idx">8.4</span>第一次切进 OpenWrt</p>
+    <div class="body">
+      <p>写入完成后如果开机还是 Android 界面，<strong>不是失败</strong>——去高级后台（<code>192.168.0.1:2333</code>）的「系统切换器」插件点一下，切到 OpenWrt。</p>
+      <p>切换会重启，断网几十秒，正常。等 WiFi 名字变过去再连。</p>
     </div>
   </div>
 
@@ -567,8 +581,21 @@
     <li>手机连 WiFi 后看有没有拿到 IP，拿不到说明 DHCP 没起来。</li>
   </ul>
 
-  <h3>情况二：想退回 Android</h3>
-  <p>用第 7 步装的<strong>系统切换器</strong>。这就是为什么装了它之后不要删。切回 Android 后，原来的中兴后台会回来，可以重新操作。</p>
+  <h3>情况二：想回 Android 用，或者 OpenWrt 起不来</h3>
+  <p><strong>在 OpenWrt 后台自带的功能里切</strong>，不要去找那个插件——插件只存在于 Android 系统里，你人在 OpenWrt 里是点不到它的。这一步最容易搞反。</p>
+  <p>入口在 OpenWrt 后台的菜单里，不同镜像位置略有差别，一般叫「系统切换 / 切换到 Android / Switch」，翻一下 LuCI 菜单就能看到。点完盒子重启，几十秒后回到 Android，原来的中兴后台 <code>192.168.0.1</code> 也就回来了。</p>
+
+  <table>
+    <tr><th>方向</th><th>入口在哪</th></tr>
+    <tr><td>Android → OpenWrt</td><td>高级后台 <code>192.168.0.1:2333</code> 的<strong>「系统切换器」插件</strong></td></tr>
+    <tr><td>OpenWrt → Android</td><td>OpenWrt 后台<strong>自带的切换功能</strong>（LuCI 菜单里）</td></tr>
+  </table>
+
+  <div class="box info">
+    <span class="lab">为什么值得留着两个系统</span>
+    <p>两边互不覆盖，Android 那套（中兴后台、原厂功能）和 OpenWrt 那套（投屏、共享、控制台）都完整保留，想用哪个就待在哪个。哪天 OpenWrt 配坏了，切回去照样能上网、能开热点，不至于手里一块砖。</p>
+    <p>切换会重启并断网几十秒，别在导航或通话中途切。</p>
+  </div>
 
   <h3>情况三：刷坏了，连 WiFi 都没有</h3>
   <p>回到第 2 步的 <code>backup_xxxx</code> 备份，用「备份还原」工具还原整机。前提是备份完整（73 个文件 / 5.28 G）。</p>
@@ -632,7 +659,8 @@
   <details>
     <summary>刷完能一直待在 OpenWrt，不回 Android 吗</summary>
     <div class="d">
-      <p>可以。系统切换器只是保险，不用每次开机都选。只有当 OpenWrt 出问题需要回退时，才用它切回 Android。</p>
+      <p>可以，而且大多数人就是这么用的。两个系统是并存的，开机待在哪个由你上次切到哪决定，不需要每次开机都选。</p>
+      <p>要回 Android：在 OpenWrt 后台自带的切换功能里切；要从 Android 回 OpenWrt：用高级后台的「系统切换器」插件。两边各有各的入口，别在同一个地方找两个方向。</p>
     </div>
   </details>
 
