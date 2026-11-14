@@ -39,7 +39,7 @@ AI 会依次做：连 SSH → 跑体检 → 备份 → 按模块配置 → 逐�
 盒子上开 SSH（默认 `root@100.96.0.1`，密码在机器背面或你自己设的），然后：
 
 ```sh
-# 1. 拉代码（盒子没装 git 就在电脑上 scp 上来，或用 release 包）
+# 1. 拉代码（把 <你的账号> 换成实际仓库；盒子没装 git 就在电脑上 scp 上来，或用发来的 zip）
 wget -O v50-box.tar.gz https://github.com/<你的账号>/v50-box/archive/refs/heads/main.tar.gz
 tar xzf v50-box.tar.gz && cd v50-box-main
 
