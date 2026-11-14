@@ -158,7 +158,7 @@
     <tr><td>电脑</td><td>Windows 10 / 11，最好是有线键盘鼠标，刷机全程不要用远程桌面。</td></tr>
     <tr><td>数据线</td><td><strong>能传数据的</strong> USB 线。很多充电线只有电源线，插上电脑毫无反应，这是最常见的“卡在第一步”。</td></tr>
     <tr><td>SIM 卡</td><td>刷完要用来上网。刷机过程中可以不插。</td></tr>
-    <tr><td>工具包</td><td>原作者整理的网盘（见下）。里面按固件版本分文件夹，<strong>每个文件夹里都有自己的使用教程</strong>，用之前一定先看那个。</td></tr>
+    <tr><td>工具包</td><td>原作者整理的网盘（见下方「工具来源与致谢」）。里面按固件版本分文件夹，<strong>每个文件夹里都有自己的使用教程</strong>，用之前一定先看那个。</td></tr>
   </table>
 
   <div class="box danger">
@@ -167,12 +167,29 @@
     <p>另外：刷机全程<strong>不要断电、不要拔线、不要合盖</strong>。笔记本请插上电源，别让它在刷写途中断电休眠。</p>
   </div>
 
-  <h3>工具来源</h3>
-  <p>以下都是原作者（一只小黑狗 / 安卓猫猫）整理的第三方工具，本教程只是把顺序和坑写清楚，<strong>不转存、不保证长期有效</strong>：</p>
+  <h3>工具来源与致谢</h3>
+  <p>刷机这条链路上的工具、镜像、脚本<strong>全部来自原作者</strong>，本教程没有转存、没有改动，只负责把顺序、原因和踩过的坑写清楚。所有下载请直接走原作者的网盘：</p>
+
+  <div class="card">
+    <p style="margin-top:0"><strong>感谢两位作者：</strong></p>
+    <ul style="margin-bottom:6px">
+      <li><strong>闲鱼「安卓猫猫」</strong>——一键刷分区与备份还原工具、OP 系统安装器，整套刷机链路的基础</li>
+      <li><strong>「讨一身可爱」</strong>——一键 Root 工具、UFI-TOOLS 高级后台、面具与投屏的配套流程</li>
+    </ul>
+    <p style="color:var(--ink3);font-size:14px;margin-bottom:0">没有他们整理这些工具，普通人根本刷不了这台机器。</p>
+  </div>
+
   <ul>
-    <li>刷机工具包：<span class="path">https://1816129281.share.123pan.cn/123pan/7oa5Vv-GiS83?pwd=BoL5#</span><br>备用：<span class="path">https://pan.quark.cn/s/3bc8206c4f9d</span></li>
-    <li>OP 系统镜像 + 系统切换器：<span class="path">https://pan.quark.cn/s/05c6a09772ad</span>（提取码 <code>HnJc</code>）</li>
+    <li>刷机工具包（备份 / Root / UFI-TOOLS / 肥猫助手 / OP 安装器）：<span class="path">https://1816129281.share.123pan.cn/123pan/7oa5Vv-GiS83?pwd=BoL5#</span><br>备用：<span class="path">https://pan.quark.cn/s/3bc8206c4f9d</span></li>
+    <li>OP 系统镜像 + 系统切换器插件：<span class="path">https://pan.quark.cn/s/05c6a09772ad</span>（提取码 <code>HnJc</code>）</li>
   </ul>
+
+  <div class="box info">
+    <span class="lab">刷不成功可以付费代刷</span>
+    <p>如果卡在某一步过不去，或者担心自己把机器刷废，<strong>可以直接找上面两位付费代刷</strong>——他们都在闲鱼，搜 ID「<strong>安卓猫猫</strong>」「<strong>讨一身可爱</strong>」就能找到。</p>
+    <p>本教程与他们没有任何利益关系，也不从中抽成，只是把这条路指给你。自己动手前请先确认：备份做了没有、数据线是不是能传数据的、时间够不够两小时。</p>
+  </div>
+
   <p>网盘里通常长这样：</p>
   <div class="card">
     <p style="margin-top:0"><code>一键刷分区、备份还原工具/</code>　← 只用它的<strong>备份</strong>功能<br>
@@ -559,6 +576,7 @@
   <div class="box danger">
     <span class="lab">如果连备份都没有</span>
     <p>那就只能走展锐平台线刷（需要专用工具和固件包），一般个人做不到。所以第 2 步不能省——这也是整篇教程里唯一不能跳的一步。</p>
+    <p>已经刷废了也不用慌，这种状态<strong>可以找原作者付费代刷救回</strong>（闲鱼搜「安卓猫猫」「讨一身可爱」），他们有平台工具。别自己再乱试，越试越难救。</p>
   </div>
 
   <h3>排查用的一般套路</h3>
@@ -628,8 +646,10 @@
 
 <hr class="hr">
 <footer>
-  <p>本教程整理自原作者（一只小黑狗 / 安卓猫猫）的工具与流程，补充了顺序原因与失败处理。<br>
-  工具与镜像版权归原作者，本页只做说明。刷机有风险，操作前请确认备份完整。</p>
+  <p><strong>致谢</strong>：闲鱼「安卓猫猫」（刷分区备份工具 / OP 系统安装器）、「讨一身可爱」（一键 Root / UFI 高级后台 / 面具配套流程）。<br>
+  所有刷机工具与镜像的版权归两位原作者，本页不转存、不修改，只做流程说明。</p>
+  <p style="margin-top:10px">刷机失败或不想自己动手，可在闲鱼搜上面两位 ID 付费代刷；本教程与二人无利益关系。<br>
+  刷机有风险，操作前请确认备份完整。</p>
 </footer>
 
 </div>
