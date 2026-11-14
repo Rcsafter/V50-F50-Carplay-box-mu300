@@ -171,12 +171,20 @@
   <p>刷机这条链路上的工具、镜像、脚本<strong>全部来自原作者</strong>，本教程没有转存、没有改动，只负责把顺序、原因和踩过的坑写清楚。所有下载请直接走原作者的网盘：</p>
 
   <div class="card">
-    <p style="margin-top:0"><strong>感谢两位作者：</strong></p>
+    <p style="margin-top:0"><strong>感谢这三位：</strong></p>
     <ul style="margin-bottom:6px">
       <li><strong>闲鱼「安卓猫猫」</strong>——一键刷分区与备份还原工具、OP 系统安装器，整套刷机链路的基础</li>
       <li><strong>「讨一身可爱」</strong>——一键 Root 工具、UFI-TOOLS 高级后台、面具与投屏的配套流程</li>
+      <li><strong>抖音「一只小黑狗」</strong>（<code>yizhixiaoheigou</code>）——<strong>DashPlay 主体</strong>：投屏、车机端页面、设置页，以及让 AI 接手收尾的那套提示词</li>
     </ul>
-    <p style="color:var(--ink3);font-size:14px;margin-bottom:0">没有他们整理这些工具，普通人根本刷不了这台机器。</p>
+    <p style="color:var(--ink3);font-size:14px;margin-bottom:0">没有他们整理这些工具，普通人根本刷不了这台机器，也不会有车机上那个能用的投屏页面。</p>
+  </div>
+
+  <div class="box info">
+    <span class="lab">谁是作者，谁做了什么</span>
+    <p><strong>DashPlay 主体由抖音「一只小黑狗」提供</strong>——投屏、车机端页面、设置页这些核心能力都是他的作品，本教程没有改动它。</p>
+    <p>写这份教程的人只做两件事：<strong>把刷机和配置流程写清楚</strong>，以及<strong>在 DashPlay 之上做自开发的附加功能</strong>（车内共享、受信 HTTPS、车机悬浮视频窗、开机查流量、外网隧道、AI 短信推送）。</p>
+    <p style="margin-bottom:0">这些附加功能<strong>装不装由你决定</strong>——安装器会逐项问你，不想要的直接跳过，不影响 DashPlay 本身。</p>
   </div>
 
   <ul>
@@ -554,18 +562,29 @@
 遇到标记为「禁止」的操作一律停下问我。
 另外请检查并修复蓝牙，确认车机能正常连上。</code></pre>
 
-  <p>AI 会依次做：连 SSH → 体检 → 备份 → 按模块配置 → 逐项校验。它会处理这些事：</p>
-  <ul>
-    <li>时区改回 <code>Asia/Shanghai</code>（镜像默认经常是土耳其或 UTC，日志时间全错）</li>
-    <li>关掉 dnsmasq 的查询日志（不然日志缓冲被刷满，出问题查不到原因）</li>
-    <li>车内共享（手机车机直接播盘里的电影，支持拖进度条）</li>
-    <li>HTTPS（有域名用 Let's Encrypt，没有就自签）</li>
-    <li>可选：开机自动查流量，把运营商短信推到微信</li>
-  </ul>
+  <p>AI 会依次做：连 SSH → 体检 → 备份 → <strong>问你要装哪些功能</strong> → 逐项配置 → 逐项校验。</p>
+
+  <table>
+    <tr><th>功能</th><th>做什么</th><th>谁做的</th></tr>
+    <tr><td>基础设置</td><td>时区改回 <code>Asia/Shanghai</code>、关掉 dnsmasq 查询日志、留一份可回滚的备份</td><td>本教程作者</td></tr>
+    <tr><td>车内共享</td><td>手机车机直接播盘里的电影，支持拖进度条</td><td>本教程作者</td></tr>
+    <tr><td>HTTPS</td><td>有域名用 Let's Encrypt，没有就自签</td><td>本教程作者</td></tr>
+    <tr><td>DashPlay 投屏（开关）</td><td>确认在、设开机自启、查状态，不改本体</td><td><strong>抖音「一只小黑狗」</strong></td></tr>
+    <tr><td>悬浮视频窗</td><td>车机画面右下角一个可拖动圆钮，点开看网页或本地视频</td><td>本教程作者（叠加在 DashPlay 上）</td></tr>
+    <tr><td>开机查流量</td><td>自动发「查流量」，回复推到微信（约 0.1 元/条）</td><td>本教程作者</td></tr>
+    <tr><td>外网隧道</td><td>挂公网域名，人在外地也能看（要自己的凭据）</td><td>本教程作者</td></tr>
+    <tr><td>AI 助手检查</td><td>核密钥权限、看进程和日志</td><td>本教程作者</td></tr>
+  </table>
 
   <div class="box info">
+    <span class="lab">装哪些你说了算</span>
+    <p>安装器会<strong>逐项问你</strong>，回车就是跳过。不想要的完全不影响 DashPlay——它本来就是镜像自带的，装不装附加功能都能投屏。</p>
+    <p>不想被问也可以直接指定：<code>sh install.sh --all</code> 只装免凭据、不花钱的那几项；<code>--list</code> 可以看完整清单。</p>
+  </div>
+
+  <div class="box warn">
     <span class="lab">为什么不让你自己敲命令</span>
-    <p>配置里有一堆「看起来能跑但会踩坑」的地方：证书要和域名匹配、服务要开机自启、共享服务要处理 Range 请求才能拖进度条。这些写成脚本让 AI 逐步执行并验证，比对着文档手敲可靠得多，出错也好回滚。</p>
+    <p>配置里有一堆「看起来能跑但会踩坑」的地方：证书要和域名匹配、服务要开机自启、共享服务要处理 Range 请求才能拖进度条、隧道起来时必须等 DNS 就绪否则必挂。这些写成脚本让 AI 逐步执行并验证，比对着文档手敲可靠得多，出错也好回滚。</p>
   </div>
 </section>
 
@@ -674,9 +693,10 @@
 
 <hr class="hr">
 <footer>
-  <p><strong>致谢</strong>：闲鱼「安卓猫猫」（刷分区备份工具 / OP 系统安装器）、「讨一身可爱」（一键 Root / UFI 高级后台 / 面具配套流程）。<br>
-  所有刷机工具与镜像的版权归两位原作者，本页不转存、不修改，只做流程说明。</p>
-  <p style="margin-top:10px">刷机失败或不想自己动手，可在闲鱼搜上面两位 ID 付费代刷；本教程与二人无利益关系。<br>
+  <p><strong>致谢</strong>：抖音「一只小黑狗」<code>yizhixiaoheigou</code>（<strong>DashPlay 主体</strong>：投屏 / 车机页面 / 设置页）、<br>
+  闲鱼「安卓猫猫」（刷分区备份工具 / OP 系统安装器）、「讨一身可爱」（一键 Root / UFI 高级后台 / 面具配套流程）。</p>
+  <p style="margin-top:8px">三者版权均归原作者。本教程只做流程说明与自开发附加功能（共享 / HTTPS / 悬浮窗 / 查流量 / 隧道 / AI 推送），不转存、不修改原作。</p>
+  <p style="margin-top:8px">刷机失败或不想自己动手，可在闲鱼搜「安卓猫猫」「讨一身可爱」付费代刷；本教程与三人均无利益关系。<br>
   刷机有风险，操作前请确认备份完整。</p>
 </footer>
 

@@ -1,0 +1,52 @@
+<script>(function(){var pane=document.getElementById('vidpane'),fab=document.getElementById('vidfab'),bar=document.getElementById('vidbar'),fr=document.getElementById('vidfr'),inp=document.getElementById('vidinp'),go=document.getElementById('vidgo'),cls=document.getElementById('vidcls'),minb=document.getElementById('vidmin'),rz=document.getElementById('vidrz'),tip=document.getElementById('vidtip'),tipT=0,vnet=document.getElementById('vnet'),vshr=document.getElementById('vshr');if(!pane||!bar||!fr)return;var PK='vid.pane',LK='vid.last',FK='vid.fab',MINW=280,W=480,full=false,keep=null,cur='';
+var FW=48,enabled=false,fpos={l:0,t:0};
+function sv(l,t,w){try{localStorage.setItem(PK,JSON.stringify({l:l,t:t,w:w}))}catch(e){}}
+function fit(l,t,w){var vw=window.innerWidth,vh=window.innerHeight;w=Math.max(MINW,Math.min(w,vw-16));l=Math.min(Math.max(l,8-w),vw-96);t=Math.min(Math.max(t,0),vh-44);pane.style.width=w+'px';pane.style.left=Math.round(l)+'px';pane.style.top=Math.round(t)+'px';W=w}
+function show(){pane.style.display='flex';fab.style.display='none';var u=fr.getAttribute('src')||'';if(cur&&(u===''||u==='about:blank'))fr.src=cur}
+function hide(){pane.style.display='none';if(enabled)fab.style.display='flex'}
+function stop(){var u=fr.getAttribute('src')||'';if(cur&&u&&u!=='about:blank')fr.src='about:blank'}
+function close(){hide();stop()}
+function src4(u){u=(u||'').trim();if(!u)return null;var m=u.match(/BV[0-9A-Za-z]{10}/);if(m)return 'https://player.bilibili.com/player.html?bvid='+m[0]+'&page=1&autoplay=0&danmaku=0&high_quality=1&as_wide=1';if(/^https?:\/\//i.test(u))return u.replace(/^http:\/\//i,'https://');m=u.match(/^[aA][vV](\d+)$/);if(m)return 'https://player.bilibili.com/player.html?aid='+m[1]+'&page=1&autoplay=0&danmaku=0&high_quality=1&as_wide=1';if(/^[\w-]+(\.[\w-]+)+([\/?#]|$)/.test(u))return 'https://'+u;return null}
+function seg(on){if(!vnet||!vshr)return;vnet.className='seg'+(on?'':' on');vshr.className='seg'+(on?' on':'')}
+function play(u){var s=src4(u);if(!s){inp.value='';inp.placeholder='没认出地址';return}seg(false);cur=s;fr.src=s;try{localStorage.setItem(LK,u)}catch(e){}show();if(tip)tip.style.display='none';clearTimeout(tipT);tipT=setTimeout(function(){if(!tip)return;tip.style.display='block';setTimeout(function(){tip.style.display='none'},4500)},7000)}
+function tap(el,fn){if(!el)return;var lock=0;function h(e){if(e){e.preventDefault();e.stopPropagation()}if(lock)return;lock=1;setTimeout(function(){lock=0},350);fn()}el.addEventListener('pointerup',h);el.addEventListener('click',h)}
+/* ---- ▶ 圆钮：可自由拖动，位置按像素记住；只有贴边时才会自动对齐 ---- */
+function fclamp(l,t){var vw=window.innerWidth,vh=window.innerHeight;return{l:Math.max(6,Math.min(l,vw-FW-6)),t:Math.max(6,Math.min(t,vh-FW-6))}}
+function fset(l,t){var p=fclamp(l,t);fpos=p;fab.style.left=p.l+'px';fab.style.top=p.t+'px'}
+function fmagnet(){var vw=window.innerWidth,vh=window.innerHeight,M=20,E=12,l=fpos.l,t=fpos.t;if(l<E+M)l=E;else if(vw-(l+FW)<E+M)l=vw-E-FW;if(t<E+M)t=E;else if(vh-(t+FW)<E+M)t=vh-E-FW;fset(l,t)}
+function fsave(){try{localStorage.setItem(FK,JSON.stringify({l:Math.round(fpos.l),t:Math.round(fpos.t)}))}catch(e){}}
+(function(){var f=null,vw=window.innerWidth,vh=window.innerHeight;try{f=JSON.parse(localStorage.getItem(FK)||'null')}catch(e){}
+if(f&&f.l!=null&&f.t!=null)fset(f.l,f.t);
+else if(f&&f.c){if(f.c==='tl')fset(6,6);else if(f.c==='tr')fset(vw-FW-16,6);else if(f.c==='bl')fset(6,vh-FW-16);else fset(vw-FW-16,vh-FW-96)}
+else fset(vw-FW-16,vh-FW-96)})();
+var fd=null,moved=false;
+fab.addEventListener('pointerdown',function(e){if(!enabled)return;e.preventDefault();e.stopPropagation();fd={x:e.clientX,y:e.clientY,l:fpos.l,t:fpos.t};moved=false;try{fab.setPointerCapture(e.pointerId)}catch(err){}});
+window.addEventListener('pointermove',function(e){if(!fd)return;var dx=e.clientX-fd.x,dy=e.clientY-fd.y;if(!moved&&Math.abs(dx)+Math.abs(dy)<6)return;moved=true;fab.classList.add('drag');fset(fd.l+dx,fd.t+dy);e.preventDefault()},true);
+window.addEventListener('pointerup',function(e){if(!fd)return;fd=null;if(moved){fab.classList.remove('drag');fmagnet();fsave()}else if(pane.style.display==='flex'){hide()}else{show()}},true);
+window.addEventListener('pointercancel',function(){if(!fd)return;fd=null;fab.classList.remove('drag');if(moved){fmagnet();fsave()}},true);
+var s=null;try{s=JSON.parse(localStorage.getItem(PK)||'null')}catch(e){}var vw=window.innerWidth,vh=window.innerHeight,w=(s&&s.w)?s.w:Math.min(480,vw-32),l=(s&&s.l!=null)?s.l:vw-w-16,t=(s&&s.t!=null)?s.t:vh-Math.round(w*9/16)-64;fit(l,t,w);
+var last='';try{last=localStorage.getItem(LK)||''}catch(e){}if(last)inp.value=last;
+pane.style.display='none';fab.style.display='none';
+var g=null;
+bar.addEventListener('pointerdown',function(e){if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON')return;if(full)return;g={x:e.clientX,y:e.clientY,l:parseFloat(pane.style.left),t:parseFloat(pane.style.top),w:W,size:false};try{bar.setPointerCapture(e.pointerId)}catch(err){}});
+rz.addEventListener('pointerdown',function(e){if(full)return;g={x:e.clientX,y:e.clientY,l:parseFloat(pane.style.left),t:parseFloat(pane.style.top),w:W,size:true};e.preventDefault();e.stopPropagation();try{rz.setPointerCapture(e.pointerId)}catch(err){}});
+window.addEventListener('pointermove',function(e){if(!g)return;var dx=e.clientX-g.x,dy=e.clientY-g.y;if(g.size){fit(g.l,g.t,Math.round(g.w+dx))}else{fit(g.l+dx,g.t+dy,W)}e.preventDefault()},true);
+function endDrag(){if(!g)return;g=null;sv(parseFloat(pane.style.left),parseFloat(pane.style.top),W)}
+window.addEventListener('pointerup',endDrag,true);window.addEventListener('pointercancel',endDrag,true);
+bar.addEventListener('dblclick',function(e){if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON')return;if(full){full=false;var k=keep||{l:innerWidth-496,t:innerHeight-300,w:480};fit(k.l,k.t,k.w)}else{keep={l:parseFloat(pane.style.left),t:parseFloat(pane.style.top),w:W};full=true;fit(8,8,innerWidth-16)}});
+tap(go,function(){play(inp.value)});
+tap(vshr,function(){seg(true);cur='https://v50dashplay.duckdns.org:8443/';fr.src=cur;show();if(tip)tip.style.display='none'});
+tap(vnet,function(){seg(false);try{inp.focus()}catch(e){}});
+tap(cls,close);
+tap(minb,function(){var m=pane.classList.toggle('min');minb.textContent=m?'\u25A2':'\u2013'});
+inp.addEventListener('keydown',function(e){if(e.key==='Enter')play(inp.value)});
+window.addEventListener('resize',function(){fit(parseFloat(pane.style.left),parseFloat(pane.style.top),W);fset(fpos.l,fpos.t)});
+/* ---- 后台开关：/hud-video.json 由注入器按 UCI 写入，关掉后按钮与浮窗立即消失 ---- */
+function apply(on){enabled=!!on;if(!enabled){if(pane.style.display==='flex'){pane.style.display='none';stop()}fab.style.display='none'}else if(pane.style.display!=='flex'){fab.style.display='flex'}}
+var seen=false;
+function poll(){var u='/hud-video.json?_='+Date.now();fetch(u,{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(j){if(j&&j.on!=null){seen=true;apply(Number(j.on)!==0)}else if(!seen){apply(true)}}).catch(function(){if(!seen)apply(true)})}
+poll();setInterval(poll,3000);
+fr.addEventListener('load',function(){if(tip)tip.style.display='none'});
+var stop=['pointerdown','pointerup','touchstart','touchend','mousedown','mouseup','click','dblclick','keydown','keyup','input','wheel'];
+for(var i=0;i<stop.length;i++){pane.addEventListener(stop[i],function(e){e.stopPropagation()},false)}
+})();</script>

@@ -58,17 +58,19 @@ ls /opt/dashplay 2>/dev/null | head    # 有内容说明镜像是带 DashPlay �
 ## 4. 阶段 1 · 备份（必做，2 分钟）
 
 ```sh
-B=/mnt/mu300-disk/box-backup-$(date +%Y%m%d-%H%M)
+B=/root/v50-box-backup
 mkdir -p "$B"
-tar czf "$B/etc.tgz" /etc 2>/dev/null
-cp -f /etc/config/* "$B"/ 2>/dev/null
-ls -lh "$B"
+T=$B/etc-$(date +%Y%m%d-%H%M).tgz
+tar czf "$T" /etc 2>/dev/null
+ls -lh "$T"
 ```
 
-把 `$B` 路径记下来，最后报告里回填。**回滚就是把 `etc.tgz` 解回 `/`**：
+（`base` 模块也会自动打一份同名规则的备份，保留最近 5 份，两处路径一致，别搞混。）
+
+把 `$T` 路径记下来，最后报告里回填。**回滚**：
 
 ```sh
-tar xzf "$B/etc.tgz" -C / && reboot
+sh install.sh --rollback "$T"          # 解回 / 并重启
 ```
 
 ## 5. 阶段 2 · 体检
@@ -89,18 +91,38 @@ sh install.sh --check
 ```
 
 规则：`[✗]` 是「可装但没装」，`[!]` 是「提醒，不影响」，`[✓]` 正常。
-把表格原样发给用户，并给出建议：通常装 `base,share,tls` 三个就够。
+把表格原样发给用户，然后**让他自己挑要装哪些功能**，不要替他决定。
 
 ## 6. 阶段 3 · 分模块安装
 
-统一调用方式（幂等，重复执行安全）：
+先把这张表发给用户，让他逐项选：
+
+| 模块 | 功能 | 谁做的 | 成本 / 依赖 |
+|---|---|---|---|
+| `base` | 时区、日志、主机名、`/etc` 备份 | 本仓库 | 建议必装 |
+| `share` | 车内共享，手机车机播盘里的电影 | 本仓库 | 需要 python3 |
+| `tls` | 局域网 HTTPS 不再告警 | 本仓库 | 无 |
+| `dashplay` | 投屏主体，这里只设开机自启 | **抖音「一只小黑狗」**（主体非本仓库） | 镜像需自带 `/opt/dashplay` |
+| `hover` | 车机画面悬浮视频窗 | 本仓库（叠加在 DashPlay 上） | 依赖 DashPlay 的注入器 |
+| `traffic` | 开机自动查流量短信 | 本仓库 | **约 0.1 元/条**，6 小时去重 |
+| `tunnel` | 外网隧道（cloudflared） | 本仓库 | 需要用户自己的 tunnel 凭据 |
+| `ai` | 助手进程与密钥健康检查 | 本仓库 | 镜像需自带助手 |
+
+默认建议 `base,share,tls`；`dashplay`、`hover` 问一句要不要；`traffic`、`tunnel`、`ai`
+必须先讲清成本与前提，得到明确同意再装。
 
 ```sh
-sh install.sh --module base
+sh install.sh --list                 # 列出全部功能与说明
+sh install.sh --module base          # 一次一个模块，装完立刻校验
 sh install.sh --module share
 sh install.sh --module tls
-sh install.sh --module traffic     # 可选，要花短信费
+sh install.sh --module dashplay      # 用户说要才装
+sh install.sh --module hover         # 用户说要才装
+sh install.sh --module traffic       # 用户同意付费才装
 ```
+
+**不要跑不带参数的 `sh install.sh`**：它会进交互问答，在 AI 的非交互终端里会卡住。
+**也不要为了省事跑 `--all`**：那等于替用户勾了选项。
 
 ### 6.1 base — 基础
 
@@ -161,6 +183,78 @@ tail -5 /tmp/traffic-boot.log
 失败常见原因：SIM 未插/未激活、短信中心号不对、运营商不支持 10001 这个指令。
 **不要反复发**，一次没回就先停，告诉用户手动发一条短信试试。
 
+### 6.5 dashplay — 投屏（主体不是本仓库的）
+
+做的事很少：确认 `/opt/dashplay` 在、按用户意愿设开机自启、校验 18443 能不能开。
+
+**DashPlay 主体由抖音「一只小黑狗」提供**，投屏、车机页面、设置页都是他的作品。
+**不要修改它的任何文件、不要改它的页面、不要"优化"它的配置。**
+
+校验：
+
+```sh
+ls -d /opt/dashplay
+uci get dashplay.main.enabled          # 1 = 自启
+/usr/bin/dashplay-switch status        # 有输出即可
+netstat -lnt | grep -E ':(18443|18080) '
+```
+
+特殊情况：如果体检时发现它是**故意关着的**（`enabled=0` 且进程没跑），
+装之前先问用户「你自己关的吗？要打开吗」，不要顺手启动。用户说关着就保持关着。
+
+### 6.6 hover — 车机悬浮视频窗
+
+做的事：给 `dashplay-switch` 补 `video-on/off/status`、把三个素材文件放进 `/etc/dashplay-hud`、
+写 UCI `dashplay.main.video_pane`、加 cron 每 5 分钟补注入一次。
+
+校验：
+
+```sh
+/usr/bin/dashplay-switch video-status        # 1=开 0=关
+cat /opt/dashplay/dist/hud-video.json        # {"on":1}
+crontab -l | grep playport-video-inject
+```
+
+失败时的判断顺序（不要瞎试）：
+
+1. `ls /usr/bin/playport-*` —— 注入器叫别的名字，说明镜像版本不同，停下告诉用户；
+2. 素材没被读 —— `/etc/dashplay-hud` 里的文件名和注入器期望的不一致，同上；
+3. 车机页面已经有圆钮但用户说没看到 —— 让他刷新车机页面。
+
+**不要自己编素材、不要直接改 DashPlay 的车机页面文件**，那是原作者的东西。
+
+### 6.7 tunnel — 外网隧道
+
+做的事：生成 `/etc/init.d/cloudflared`（`START=99`，启动前轮询 dnsmasq 直到能解析
+`argotunnel.com`）、把配置和凭据权限收到 600、启动并校验有没有 `Registered tunnel connection`。
+
+前提：用户**自己**已经建好 tunnel 并拿到凭据 json。没有的话脚本只会生成
+`config.yml.example` 让用户填，不要替用户注册、也不要问他要 token。
+
+```sh
+ps w | grep '[c]loudflared tunnel'
+logread | grep -i cloudflared | tail
+```
+
+硬性要求：
+
+- **凭据内容不许出现在对话、日志、提交里**，只报路径和权限；
+- 必须提醒用户「不要把 80 端口直接挂到隧道」，`/www/cgi-bin/cgi-exec` 能执行任意命令；
+- 域名解析在 Cloudflare 后台配置，不归脚本管。
+
+### 6.8 ai — 助手健康检查
+
+做的事：把 `/etc/picoclaw/.security.yml` 收紧到 600、确认里面配了 api_key、启动并看进程。
+
+**只报"配了没配"，绝对不要读取、输出、复制密钥内容。**
+用户把 key 贴到对话里要立刻提醒他撤回并重置。
+
+```sh
+ls -l /etc/picoclaw/.security.yml     # -rw------- 才是对的
+ps w | grep -c '[p]icoclaw'
+tail -c 800 /root/.picoclaw/logs/gateway.log
+```
+
 ## 7. 阶段 4 · 交付报告
 
 装完给用户这样一份总结（照抄结构）：
@@ -191,8 +285,11 @@ tail -5 /tmp/traffic-boot.log
 ## 9. 命令速查
 
 ```sh
-sh install.sh --check                  # 只体检
-sh install.sh --all                    # base + share + tls
+sh install.sh --check                  # 只体检（只读）
+sh install.sh --list                   # 列出全部可选功能
+sh install.sh --module base            # 装一个模块（推荐逐个来）
 sh install.sh --module tls --dry-run   # 只打印将执行的操作
-sh install.sh --rollback /mnt/mu300-disk/box-backup-xxx/etc.tgz
+sh install.sh --rollback /root/v50-box-backup/etc-20261115-0800.tgz
 ```
+
+模块名：`base` `share` `tls` `traffic` `dashplay` `hover` `tunnel` `ai`

@@ -22,22 +22,40 @@ description: 配置中兴 V50 / F50（MU300，展锐 UMS9620）刷好 OpenWrt �
    不要跳过这步。体检会暴露"时区错、没有数据盘、蓝牙没起来、外网不通"等问题，
    这些问题不解决，后面配了也用不了。
 
-2. 用户确认后再装。默认三件套：
+2. **让用户自己挑功能**，把这张表发给他，不要替他决定：
+
+   | 模块 | 功能 | 归属 | 备注 |
+   |---|---|---|---|
+   | `base` | 时区/日志/备份 | 本仓库 | 建议必装 |
+   | `share` | 车内共享 | 本仓库 | |
+   | `tls` | 局域网 HTTPS | 本仓库 | |
+   | `dashplay` | 投屏，只设自启 | **抖音「一只小黑狗」** | 镜像需自带 |
+   | `hover` | 车机悬浮视频窗 | 本仓库 | 依赖 DashPlay |
+   | `traffic` | 开机查流量 | 本仓库 | 约 0.1 元/条 |
+   | `tunnel` | 外网隧道 | 本仓库 | 需用户自己的凭据 |
+   | `ai` | 助手健康检查 | 本仓库 | 镜像需自带助手 |
+
+   然后逐个装：
    ```sh
-   sh install.sh --all --yes
+   sh install.sh --module base
+   sh install.sh --module share
    ```
-   或按需：`--module base` / `share` / `tls` / `traffic`。
    每个模块幂等，失败重跑即可，不需要先清理。
+   `sh install.sh --list` 可随时列出清单。
+
+   **不要跑不带参数的 `install.sh`**（会进交互问答，AI 环境里卡住），
+   **也不要默认 `--all`**（等于替用户勾了选项）。
 
 3. 每装完一个模块，把脚本打印的校验结果转述给用户，不要只说"好了"。
 
 ## 硬性约束
 
 - **不要碰刷机相关的东西**：分区、fastboot、`/dev/block/*`、面具。碰了会变砖。
-- **不要动 dashplay 的启停**。用户可能故意关着它（`uci get dashplay.main.enabled`），
-  看到 inactive 不要"顺手修好"，先问。
+- **不要改 DashPlay 本体**。投屏、车机页面、设置页是抖音「一只小黑狗」的作品，
+  本仓库只在它上面叠加功能（`hover`）和设开关。也不要动它的启停：
+  用户可能故意关着（`uci get dashplay.main.enabled`），看到 inactive 先问，别"顺手修好"。
 - **短信模块要花钱**（约 0.1 元/条）。装 `traffic` 前必须明确告知并征得同意。
-- **不要外传**：域名 token、隧道凭据、root 口令、acme 私钥。
+- **不要外传**：域名 token、隧道凭据、root 口令、acme 私钥、AI 助手 api key。
 - 改 `/etc` 之前 base 模块会自动打 tar 备份，回滚用 `sh install.sh --rollback <路径>`。
 
 ## 常见"看起来是 bug 其实正常"
