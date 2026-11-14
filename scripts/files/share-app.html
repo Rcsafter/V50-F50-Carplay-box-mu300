@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>车内共享</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--line:#232b36;--txt:#e6edf3;--dim:#8b949e;--acc:#3fb950;--blue:#58a6ff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",system-ui,sans-serif}
+body{padding:0 0 40px}
+header{position:sticky;top:0;z-index:5;background:rgba(13,17,23,.94);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:14px 16px 10px}
+h1{margin:0;font-size:19px;font-weight:600;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+.upbtn{margin-left:auto;font-size:13px;font-weight:500;color:#fff;background:var(--blue);border:none;
+  padding:7px 14px;border-radius:8px;cursor:pointer;font-family:inherit}
+.upbtn:disabled{opacity:.45}
+h1 span.dot{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px var(--acc)}
+.sub{margin-top:4px;font-size:12px;color:var(--dim)}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding:10px 16px 0;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:7px 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);
+  font-size:13px;color:var(--dim);white-space:nowrap;cursor:pointer;transition:.15s}
+.tab.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.list{padding:6px 16px}
+.row{display:flex;align-items:center;gap:12px;padding:12px 12px;margin-top:8px;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;cursor:pointer;transition:.15s}
+.row:active{transform:scale(.985);background:#1c2330}
+.ico{flex:0 0 38px;height:38px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  font-size:17px;background:#1f2937}
+.video .ico{background:#3b1d1d}.audio .ico{background:#1d2f3b}.image .ico{background:#2d1d3b}
+.meta{min-width:0;flex:1}
+.nm{font-size:14.5px;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.inf{font-size:12px;color:var(--dim);margin-top:3px}
+.play{flex:0 0 auto;font-size:12px;color:var(--blue);border:1px solid #2b4a6b;
+  background:#12212f;padding:6px 12px;border-radius:8px;cursor:pointer}
+.play:active{background:#1b3550;color:#fff}
+.del{flex:0 0 auto;width:34px;height:34px;border-radius:9px;background:#1c2330;
+  display:flex;align-items:center;justify-content:center;color:#8b949e;font-size:18px;line-height:1}
+.del:active{background:#3a1d1d;color:#ff7b72}
+.empty{padding:60px 20px;text-align:center;color:var(--dim);font-size:14px;line-height:1.9}
+.empty code{background:var(--card);padding:2px 6px;border-radius:5px;color:var(--blue)}
+#pl{position:fixed;inset:0;background:#000;display:none;z-index:50;flex-direction:column}
+#pl.on{display:flex}
+#pl .bar{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:rgba(0,0,0,.85);border-bottom:1px solid #222}
+#pl .bar .t{flex:1;min-width:0;font-size:13px;color:#ddd;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pl .bar b{font-size:20px;color:#888;padding:0 10px;cursor:pointer}
+#pl .wrap{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;padding:8px}
+#pl video,#pl img{max-width:100%;max-height:100%;background:#000}
+#pl audio{width:92%}
+#err{display:none;padding:18px;color:#f0883e;font-size:13.5px;line-height:1.8;text-align:center}
+#err.on{display:block}
+</style>
+</head>
+<body>
+<header>
+  <h1><span class="dot"></span>车内共享<button id="up" class="upbtn">＋ 上传</button></h1>
+  <div class="sub" id="sub">加载中…</div>
+  <input type="file" id="fi" multiple style="display:none">
+</header>
+<div class="tabs" id="tabs"></div>
+<div class="list" id="list"></div>
+
+<div id="pl">
+  <div class="bar"><div class="t" id="pt"></div><b id="pc">✕</b></div>
+  <div class="wrap" id="pw"></div>
+  <div id="err"></div>
+</div>
+
+<script>
+(function(){
+var items=[], curDir='*', el=document.getElementById.bind(document);
+var ICON={video:'▶',audio:'♪',image:'▣',file:'▤'};
+
+function fmt(n){
+  if(n<1024)return n+' B';
+  if(n<1048576)return (n/1024).toFixed(0)+' KB';
+  if(n<1073741824)return (n/1048576).toFixed(1)+' MB';
+  return (n/1073741824).toFixed(2)+' GB';
+}
+function esc(s){return s.replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+function render(){
+  var dirs=['*'],i;
+  for(i=0;i<items.length;i++) if(dirs.indexOf(items[i].dir)<0) dirs.push(items[i].dir);
+  var t='';
+  for(i=0;i<dirs.length;i++){
+    var n=dirs[i]==='*'?'全部':dirs[i];
+    var c=dirs[i]==='*'?items.length:items.filter(function(x){return x.dir===dirs[i]}).length;
+    t+='<div class="tab'+(dirs[i]===curDir?' on':'')+'" data-d="'+esc(dirs[i])+'">'+esc(n)+' '+c+'</div>';
+  }
+  el('tabs').innerHTML=t;
+
+  var show=items.filter(function(x){return curDir==='*'||x.dir===curDir});
+  if(!show.length){
+    el('list').innerHTML='<div class="empty">这里还没有文件<br><br>把电影、音乐拷到 <code>\\\\100.96.0.1\\share</code><br>的对应文件夹里，刷新即可</div>';
+    return;
+  }
+  var h='';
+  for(i=0;i<show.length;i++){
+    var f=show[i];
+    h+='<div class="row '+f.kind+'" data-i="'+items.indexOf(f)+'">'
+      +'<div class="ico">'+(ICON[f.kind]||'▤')+'</div>'
+      +'<div class="meta"><div class="nm">'+esc(f.name)+'</div>'
+      +'<div class="inf">'+f.dir+' · '+fmt(f.size)+'</div></div>'
+      +'<div class="play" data-i="'+items.indexOf(f)+'">下载</div>'
+      +'<div class="del" data-i="'+items.indexOf(f)+'">×</div></div>';
+  }
+  el('list').innerHTML=h;
+}
+
+function url(f){
+  return 'f/'+encodeURIComponent(f.dir)+'/'+encodeURIComponent(f.name);
+}
+
+/* 真正的下载：挂上 ?dl=1 让服务端回 attachment，浏览器/文件 App 直接存盘 */
+function dl(f){
+  var a=document.createElement('a');
+  a.href=url(f)+'?dl=1';
+  a.setAttribute('download',f.name);
+  a.style.display='none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ if(a.parentNode)a.parentNode.removeChild(a) },2000);
+  var old=el('sub').textContent;
+  el('sub').textContent='开始下载 · '+f.name+'（'+fmt(f.size)+'）';
+  setTimeout(function(){ el('sub').textContent=old },4000);
+}
+
+function open(f){
+  if(!f.inline){ dl(f); return; }
+  var w=el('pw'),e=el('err');
+  e.className=''; e.innerHTML='';
+  el('pt').textContent=f.name;
+  w.innerHTML='';
+  var node=null;
+  if(f.kind==='image'){
+    node=document.createElement('img'); node.src=url(f);
+  }else if(f.kind==='audio'){
+    node=document.createElement('audio'); node.controls=true; node.src=url(f); node.autoplay=true;
+  }else{
+    node=document.createElement('video'); node.controls=true; node.autoplay=true;
+    node.setAttribute('playsinline','');
+    node.src=url(f);
+  }
+  w.appendChild(node);
+  el('pl').className='on';
+  if(f.kind==='video'||f.kind==='audio'){
+    node.addEventListener('error',function(){
+      e.className='on';
+      e.innerHTML='这个文件浏览器放不了（可能是 H.265 视频或 AC3/DTS 音轨）。<br>'
+        +'用支持全格式的播放器打开同一地址即可：<br>'
+        +'<b>VLC / MX Player → 网络 → smb://100.96.0.1/share</b>';
+    });
+  }
+}
+
+function close(){
+  var w=el('pw');
+  el('pl').className='';
+  w.innerHTML='';
+}
+
+el('tabs').addEventListener('click',function(ev){
+  var t=ev.target.closest?ev.target.closest('.tab'):null;
+  if(!t)return; curDir=t.getAttribute('data-d'); render();
+});
+function delFile(f){
+  if(!f)return;
+  if(!confirm('删除这个文件？\n\n'+f.name))return;
+  fetch(url(f),{method:'DELETE'}).then(function(r){
+    if(!r.ok)return r.text().then(function(t){throw new Error(t||('HTTP '+r.status))});
+    return r.json();
+  }).then(function(){ load(); }).catch(function(e){ alert('删除失败：'+e.message) });
+}
+el('list').addEventListener('click',function(ev){
+  var d=ev.target.closest?ev.target.closest('.del'):null;
+  if(d){ ev.stopPropagation(); delFile(items[+d.getAttribute('data-i')]); return; }
+  var p=ev.target.closest?ev.target.closest('.play'):null;
+  if(p){ ev.stopPropagation(); dl(items[+p.getAttribute('data-i')]); return; }
+  var r=ev.target.closest?ev.target.closest('.row'):null;
+  if(!r)return; open(items[+r.getAttribute('data-i')]);
+});
+el('pc').addEventListener('click',close);
+document.addEventListener('keydown',function(e){if(e.key==='Escape')close()});
+
+function load(){
+  fetch('api/list',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+    items=d.items||[];
+    var tot=items.reduce(function(a,b){return a+b.size},0);
+    el('sub').textContent=items.length+' 个文件 · 共 '+fmt(tot)+' · 点「下载」存到本地';
+    render();
+  }).catch(function(){
+    el('sub').textContent='读取目录失败';
+    el('list').innerHTML='<div class="empty">无法读取共享目录<br>检查 /mnt/mu300-disk/share 是否存在</div>';
+  });
+}
+var upBtn=el('up'), fi=el('fi');
+function upload(files){
+  var dir=(curDir==='*')?'上传':curDir, i=0;
+  upBtn.disabled=true;
+  function next(){
+    if(i>=files.length){ upBtn.disabled=false; load(); return; }
+    var f=files[i], xhr=new XMLHttpRequest();
+    xhr.open('PUT','u/'+encodeURIComponent(dir)+'/'+encodeURIComponent(f.name));
+    xhr.upload.onprogress=function(e){
+      if(!e.lengthComputable)return;
+      el('sub').textContent='正在上传 '+(i+1)+'/'+files.length+'  '+f.name+' · '
+        +Math.round(e.loaded/e.total*100)+'%';
+    };
+    xhr.onload=function(){
+      if(xhr.status!==200){ el('sub').textContent='上传失败：'+f.name; upBtn.disabled=false; load(); return; }
+      i++; next();
+    };
+    xhr.onerror=function(){ el('sub').textContent='网络中断：'+f.name; upBtn.disabled=false; };
+    xhr.send(f);
+  }
+  next();
+}
+upBtn.addEventListener('click',function(){ fi.click() });
+fi.addEventListener('change',function(){
+  var fs=[].slice.call(fi.files||[]); fi.value='';
+  if(fs.length) upload(fs);
+});
+
+load();
+setInterval(function(){ if(!el('pl').classList.contains('on')) load(); },30000);
+})();
+</script>
+</body>
+</html>
