@@ -1,0 +1,9 @@
+# OpenWrt 上的 ash 不认 CRLF：脚本一旦被换成 \r\n，第一行就是 "#!/bin/sh\r: not found"
+* text=auto eol=lf
+*.sh   text eol=lf
+*.md   text eol=lf
+*.html text eol=lf
+*.py   text eol=lf
+scripts/files/share-web text eol=lf
+*.png binary
+*.jpg binary
