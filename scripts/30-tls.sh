@@ -16,11 +16,12 @@ ip=$(lan_ip)
 HOST=$(uci -q get system.@system[0].hostname 2>/dev/null); [ -n "$HOST" ] || HOST=v50box
 
 step "找现成证书"
+# 优先级：35-domain.sh 签的（/etc/v50-box-tls）→ dashplay 的 acme → acme.sh 自己的目录 → 其他
 CERT=""; KEY=""
-for d in /opt/dashplay/state/acme/certs/* /etc/share-web /etc/acme; do
+for d in /etc/v50-box-tls /opt/dashplay/state/acme/certs/* /root/.acme.sh/*_ecc /root/.acme.sh/* /etc/share-web /etc/acme; do
 	[ -d "$d" ] || continue
 	c=$(ls "$d"/fullchain.cer "$d"/fullchain.pem 2>/dev/null | head -1)
-	k=$(ls "$d"/*.key "$d"/privkey.pem 2>/dev/null | head -1)
+	k=$(ls "$d"/*.key "$d"/privkey.pem "$d"/key.pem 2>/dev/null | head -1)
 	[ -n "$c" ] && [ -n "$k" ] && { CERT=$c; KEY=$k; break; }
 done
 
@@ -96,11 +97,23 @@ code=$(wget -q -O /dev/null --no-check-certificate --timeout=5 "https://127.0.0.
 [ "$code" = "200" ] && ok "https://127.0.0.1/ 返回 200" || bad "443 访问失败：logread | grep uhttpd"
 
 echo
-info "局域网访问：https://$ip/"
-case "$(readlink /etc/uhttpd.crt 2>/dev/null)" in
-	*acme*)
-		ok "用的是受信任证书：浏览器不会提示不安全" ;;
+info "局域网访问：https://$(domain_of || echo "$ip")/"
+case "$CERT" in
+	*acme*|/etc/v50-box-tls*)
+		ok "用的是 Let's Encrypt 证书：浏览器不会提示不安全" ;;
 	*)
 		warn "当前是自签证书：功能正常，但首次访问浏览器会警告，点「继续访问」即可"
-		warn "想彻底不警告，需要域名 + Let's Encrypt（做法见 docs/index.html）" ;;
+		warn "想彻底不警告（车机也只认域名）：先跑 --module domain 签一张，再跑本模块" ;;
+esac
+
+case "$CERT" in
+	/etc/v50-box-tls*)
+		dom=$(sed -n 's/^DD_DOM=//p' /etc/v50-box/domain.conf 2>/dev/null)
+		[ -n "$dom" ] && {
+			echo
+			info "车机/手机请用域名访问（特斯拉不认私网 IP）："
+			info "  https://$dom/           路由后台"
+			info "  https://$dom:8444/      手机控制台"
+			info "  https://$dom:8443/      车内共享"
+		} ;;
 esac

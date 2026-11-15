@@ -100,20 +100,22 @@ sh install.sh --check
 | 模块 | 功能 | 谁做的 | 成本 / 依赖 |
 |---|---|---|---|
 | `base` | 时区、日志、主机名、`/etc` 备份 | 本仓库 | 建议必装 |
+| `domain` | 免费域名 + 本地解析 + Let's Encrypt 证书 | 本仓库 | **需要一个免费 DuckDNS token；车机能否打开全靠它** |
 | `share` | 车内共享，手机车机播盘里的电影 | 本仓库 | 需要 python3 |
-| `tls` | 局域网 HTTPS 不再告警 | 本仓库 | 无 |
+| `tls` | 把证书接到路由后台/共享，HTTPS 不再告警 | 本仓库 | 跟在 `domain` 之后装 |
 | `dashplay` | 投屏主体，这里只设开机自启 | **抖音「一只小黑狗」**（主体非本仓库） | 镜像需自带 `/opt/dashplay` |
 | `hover` | 车机画面悬浮视频窗 | 本仓库（叠加在 DashPlay 上） | 依赖 DashPlay 的注入器 |
 | `traffic` | 开机自动查流量短信 | 本仓库 | **约 0.1 元/条**，6 小时去重 |
 | `tunnel` | 外网隧道（cloudflared） | 本仓库 | 需要用户自己的 tunnel 凭据 |
 | `ai` | 助手进程与密钥健康检查 | 本仓库 | 镜像需自带助手 |
 
-默认建议 `base,share,tls`；`dashplay`、`hover` 问一句要不要；`traffic`、`tunnel`、`ai`
-必须先讲清成本与前提，得到明确同意再装。
+默认建议 `base,domain,share,tls`（顺序不能变：`domain` 必须在 `tls` 前面签出证书）；
+`dashplay`、`hover` 问一句要不要；`traffic`、`tunnel`、`ai` 必须先讲清成本与前提，得到明确同意再装。
 
 ```sh
 sh install.sh --list                 # 列出全部功能与说明
 sh install.sh --module base          # 一次一个模块，装完立刻校验
+sh install.sh --module domain        # 需要 DUCKDNS_SUB / DUCKDNS_TOKEN，见 6.2
 sh install.sh --module share
 sh install.sh --module tls
 sh install.sh --module dashplay      # 用户说要才装
@@ -137,7 +139,50 @@ uci get system.@system[0].zonename      # Asia/Shanghai
 uci get dhcp.@dnsmasq[0].logqueries     # 0
 ```
 
-### 6.2 share — 车内共享
+### 6.2 domain — 免费域名（特斯拉能不能打开页面，全看这一步）
+
+**先跟用户讲清原因**：特斯拉车机不认 `192.168.x.x` / `100.96.x.x` 这类私网地址，
+而且 Let's Encrypt 不给私网 IP 签证书 —— 不用域名，车机大概率打不开，浏览器也永远提示「不安全」。
+
+要用户提供两样东西（都免费）：
+
+1. 打开 `https://www.duckdns.org/`，用任意方式登录，在 `subdomain` 框里填一个没被占的前缀（例如 `v50car`），
+   点 `add domain`。
+2. 页面上那串 `token=xxxxxxxx-xxxx-xxxx-...` 复制出来。
+
+**不要替用户注册**，也不要让用户把 token 发到群里。拿到后这样跑：
+
+```sh
+DUCKDNS_SUB=v50car DUCKDNS_TOKEN=<token> sh install.sh --module domain
+```
+
+模块做的事（每步都会打印结果）：
+
+| 动作 | 说明 |
+|---|---|
+| 写 `/etc/v50-box/domain.conf` | 权限 600，只存子域名和 token |
+| 调 DuckDNS 更新 A 记录 | 指向盒子当前局域网地址；返回 `OK` 才算成功 |
+| `dnsmasq` 加 `address=/域名/盒子IP` | 车内解析不依赖外部 DNS |
+| `dnsmasq` 加 `server=/域名/` | 屏蔽上游 AAAA，避免手机先试 IPv6 卡顿 |
+| `acme.sh --issue --dns dns_duckdns` | DNS-01 验证，不占 80 端口、不需要公网 IP |
+| 生成 `/etc/v50-box/ddns-update.sh` + 每天 04:17 的 cron | 换网段自动跟上；顺便保活（DuckDNS 30 天不更新会删域名） |
+
+校验：
+
+```sh
+nslookup <子域名>.duckdns.org              # 应返回盒子自己的地址，不是公网 IP
+cat /etc/v50-box/domain.conf | grep -c TOKEN   # 有内容即可，不要打印 token 本身
+ls -l /etc/v50-box-tls/fullchain.cer        # 软链存在说明签好了
+openssl x509 -in /etc/v50-box-tls/fullchain.cer -noout -subject -dates
+```
+
+**没有 token 或签发失败时**：脚本会让域名解析先生效（`nslookup` 能通），但证书留空，
+后面 `tls` 模块会退回自签。此时要如实告诉用户「能打开，但浏览器仍会提示不安全」，
+并给出补签方式：拿到 token 后重跑 `--module domain` 再 `--module tls`。
+
+**不要**为了签证书去开 80 端口、不要动防火墙、不要让用户把域名指向公网 IP —— DNS-01 不需要这些。
+
+### 6.3 share — 车内共享
 
 做的事：建目录树、部署 `/usr/bin/share_web.py`、注册 procd 服务并开机自启。
 
@@ -151,10 +196,11 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8080/     # 200
 给用户的用法：把电影拷到 `/mnt/mu300-disk/share/视频`，手机浏览器打开
 `http://<盒子IP>:8080/` 点播放，可拖动进度条。
 
-### 6.3 tls — HTTPS
+### 6.4 tls — HTTPS
 
-做的事：优先复用镜像里已签好的 Let's Encrypt 证书（`/opt/dashplay/state/acme/certs/*/fullchain.cer`），
-没有就用 `openssl` 自签一张（SAN 含盒子 IP 与主机名）。装到 uhttpd（LuCI/443）并可选装到共享服务。
+做的事：按顺序找证书 —— `/etc/v50-box-tls`（6.2 签的）→ `/opt/dashplay/state/acme/certs/*` →
+`/root/.acme.sh/*` → 都没有才用 `openssl` 自签（SAN 含盒子 IP 与主机名）。
+装到 uhttpd（LuCI/443），再重启共享服务让 8443 用同一张。
 
 校验：
 
@@ -167,7 +213,7 @@ curl -k -s -o /dev/null -w '%{http_code}\n' https://127.0.0.1/    # 200
 ⚠️ 自签证书浏览器仍会提示「不安全」，这是正常的，要彻底消除必须用自有域名 + Let's Encrypt。
 告诉用户这个区别，不要承诺「自签也能无提示」。
 
-### 6.4 traffic — 开机查流量（可选）
+### 6.5 traffic — 开机查流量（可选）
 
 做的事：装 `/usr/bin/traffic-boot-query`，挂到 `/etc/rc.local`，开机 4 分钟后发「查流量」到 10001，
 6 小时内查过就跳过。
@@ -183,7 +229,7 @@ tail -5 /tmp/traffic-boot.log
 失败常见原因：SIM 未插/未激活、短信中心号不对、运营商不支持 10001 这个指令。
 **不要反复发**，一次没回就先停，告诉用户手动发一条短信试试。
 
-### 6.5 dashplay — 投屏（主体不是本仓库的）
+### 6.6 dashplay — 投屏（主体不是本仓库的）
 
 做的事很少：确认 `/opt/dashplay` 在、按用户意愿设开机自启、校验 18443 能不能开。
 
@@ -202,7 +248,7 @@ netstat -lnt | grep -E ':(18443|18080) '
 特殊情况：如果体检时发现它是**故意关着的**（`enabled=0` 且进程没跑），
 装之前先问用户「你自己关的吗？要打开吗」，不要顺手启动。用户说关着就保持关着。
 
-### 6.6 hover — 车机悬浮视频窗
+### 6.7 hover — 车机悬浮视频窗
 
 做的事：给 `dashplay-switch` 补 `video-on/off/status`、把三个素材文件放进 `/etc/dashplay-hud`、
 写 UCI `dashplay.main.video_pane`、加 cron 每 5 分钟补注入一次。
@@ -223,7 +269,7 @@ crontab -l | grep playport-video-inject
 
 **不要自己编素材、不要直接改 DashPlay 的车机页面文件**，那是原作者的东西。
 
-### 6.7 tunnel — 外网隧道
+### 6.8 tunnel — 外网隧道
 
 做的事：生成 `/etc/init.d/cloudflared`（`START=99`，启动前轮询 dnsmasq 直到能解析
 `argotunnel.com`）、把配置和凭据权限收到 600、启动并校验有没有 `Registered tunnel connection`。
@@ -242,7 +288,7 @@ logread | grep -i cloudflared | tail
 - 必须提醒用户「不要把 80 端口直接挂到隧道」，`/www/cgi-bin/cgi-exec` 能执行任意命令；
 - 域名解析在 Cloudflare 后台配置，不归脚本管。
 
-### 6.8 ai — 助手健康检查
+### 6.9 ai — 助手健康检查
 
 做的事：把 `/etc/picoclaw/.security.yml` 收紧到 600、确认里面配了 api_key、启动并看进程。
 

@@ -44,10 +44,10 @@ fi
 step "证书（有就用，没有只跑明文）"
 CERT=""
 KEY=""
-for d in /opt/dashplay/state/acme/certs/* /etc/share-web; do
+for d in /etc/v50-box-tls /opt/dashplay/state/acme/certs/* /etc/share-web; do
 	[ -d "$d" ] || continue
 	c=$(ls "$d"/fullchain.cer "$d"/fullchain.pem "$d"/cert.pem 2>/dev/null | head -1)
-	k=$(ls "$d"/*.key "$d"/privkey.pem 2>/dev/null | head -1)
+	k=$(ls "$d"/*.key "$d"/privkey.pem "$d"/key.pem 2>/dev/null | head -1)
 	[ -n "$c" ] && [ -n "$k" ] && { CERT=$c; KEY=$k; break; }
 done
 if [ -n "$CERT" ]; then

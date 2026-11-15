@@ -140,9 +140,10 @@
     <li><a href="#p7">验证 Root 与关掉自动更新</a></li>
     <li><a href="#p8">装 OpenWrt</a></li>
     <li><a href="#p9">进系统后的第一件事</a></li>
-    <li><a href="#p10">交给 AI 配成车载盒子</a></li>
-    <li><a href="#p11">出问题了怎么救</a></li>
-    <li><a href="#p12">名词与常见报错</a></li>
+    <li><a href="#p10">申请一个免费域名 <span class="sub">（特斯拉只认域名）</span></a></li>
+    <li><a href="#p11">交给 AI 配成车载盒子</a></li>
+    <li><a href="#p12">出问题了怎么救</a></li>
+    <li><a href="#p13">名词与常见报错</a></li>
   </ol>
 </div>
 
@@ -552,7 +553,87 @@
 
 <!-- ---------- 10 ---------- -->
 <section id="p10">
-  <h2 class="sec"><span class="n">10</span>交给 AI 配成车载盒子</h2>
+  <h2 class="sec"><span class="n">10</span>申请一个免费域名</h2>
+  <p class="sec-note">不是图好看。不做这一步，车机很可能根本打不开你的页面。</p>
+
+  <div class="box danger">
+    <span class="lab">为什么非要用域名</span>
+    <p><strong>特斯拉车机不认私网 IP。</strong>你在车里输 <code>192.168.x.x</code>，它直接拦掉；输 <code>100.96.x.x</code> 这类运营商级 NAT 段，它会弹安全警告。这两类地址在它的规则里都不算“正常网址”。</p>
+    <p>更根本的一点：<strong>证书没法签给 IP</strong>。Let's Encrypt 不给私网地址签发，所以只要用 IP 访问，永远显示「不安全」——换什么证书都一样。</p>
+    <p>域名一次解决两件事：车机认它是正常网址，证书也名副其实。<strong>这就是为什么这一步不能省。</strong></p>
+  </div>
+
+  <div class="step">
+    <p class="h"><span class="idx">10.1</span>注册 DuckDNS（免费，3 分钟，不用备案）</p>
+    <div class="body">
+      <ul>
+        <li>打开 <span class="path">https://www.duckdns.org/</span>，用 Google / GitHub / 邮箱随便一种方式登录（不用给手机号）。</li>
+        <li>在页面顶上 <code>subdomain</code> 输入框里填一个还没被占的前缀，比如 <code>v50tesla</code>，点 <code>add domain</code>。</li>
+        <li>页面上会出现这行 <code>v50tesla.duckdns.org</code>，开头那串 <code>token=xxxxxxxx-xxxx-...</code> 就是它的密码，<strong>复制下来，别发群里</strong>。</li>
+      </ul>
+      <p>不用买域名、不用实名、不用备案。DuckDNS 的规则是「30 天完全没更新就回收」，下一步的脚本会在盒子上装一个每天更新一次的定时任务，所以放着不管也不会过期。</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <p class="h"><span class="idx">10.2</span>让盒子把这个域名解析到自己</p>
+    <div class="body">
+      <p>一条命令，把上面两样填进去：</p>
+<pre><code>DUCKDNS_SUB=v50tesla DUCKDNS_TOKEN=你的token \
+  sh install.sh --module domain</code></pre>
+      <p>交给 AI 的话只说一句“帮我配域名，前缀是 xxx，token 是 xxx”，它会自己跑这个模块。</p>
+      <p>这一步实际上做了四件事：</p>
+      <table>
+        <tr><th>动作</th><th>目的</th></tr>
+        <tr><td>在 DuckDNS 上把 A 记录指到盒子</td><td>让服务商那边「域名 ↔ 盒子」的对应关系也是对的</td></tr>
+        <tr><td>dnsmasq 里加 <code>address=/域名/盒子IP</code></td><td>车里一查这个域名就返回盒子地址，<strong>不依赖外部 DNS</strong></td></tr>
+        <tr><td>屏蔽这个域名的上游 AAAA 查询</td><td>不屏蔽的话手机会先试 IPv6，等超时再回来，体感就是「页面打开很慢」</td></tr>
+        <tr><td>acme.sh 签 Let's Encrypt 证书</td><td>用 DNS-01 方式验证，不占 80 端口，也不需要盒子有公网 IP</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="step">
+    <p class="h"><span class="idx">10.3</span>验证两件事</p>
+    <div class="body">
+      <p>① 在连着盒子 WiFi 的手机/电脑上查一下解析：</p>
+<pre><code>nslookup v50tesla.duckdns.org</code></pre>
+      <p>正常应该返回盒子自己的地址（<code>192.168.1.1</code> 或 <code>100.96.0.1</code>），而不是某个公网 IP。</p>
+      <p>② 浏览器（或车机）打开 <code>https://v50tesla.duckdns.org/</code>：地址栏是锁头、没有红色警告，就是成了。</p>
+      <p>如果证书还没签下来（命令行里会写明失败原因），先跑 <code>sh install.sh --module tls</code> 用自签顶上——功能照常，只是还会提示不安全；等签下来再跑一次就换成正式证书。</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <p class="h"><span class="idx">10.4</span>以后所有入口都用域名</p>
+    <div class="body">
+      <table>
+        <tr><th>用途</th><th>地址</th><th>说明</th></tr>
+        <tr><td>路由后台</td><td><code>https://你的域名/</code></td><td>LuCI</td></tr>
+        <tr><td>手机控制台</td><td><code>https://你的域名:8444/</code></td><td>需登录；这是自建控制台的端口，镜像默认是 <code>http://IP:8082</code></td></tr>
+        <tr><td>车内共享</td><td><code>https://你的域名:8443/</code></td><td>看电影、传文件</td></tr>
+        <tr><td>投屏 / 车机页面</td><td><code>https://你的域名:18443/</code></td><td>DashPlay</td></tr>
+        <tr><td>盒子设置</td><td><code>http://你的域名:18080/</code></td><td>DashPlay 自己的服务，只有明文</td></tr>
+      </table>
+      <p>把这些存成书签，以后不用再记 IP。</p>
+    </div>
+  </div>
+
+  <div class="box info">
+    <span class="lab">用 IP 还能打开吗</span>
+    <p>能，局域网里 IP 和域名指向同一个盒子，功能完全一样。区别只在「能不能过车机和证书的检查」——所以车里、手机上请养成用域名的习惯。</p>
+  </div>
+
+  <div class="box warn">
+    <span class="lab">换了网段 / 盒子地址变了</span>
+    <p>这个域名的 A 记录指向的是<strong>内网地址</strong>，本来就是给车里用的，外面打不开（要在外面看，得另装 <code>tunnel</code> 模块，需要你自己的隧道凭据）。</p>
+    <p>如果改了盒子网段（比如 <code>192.168.1.1</code> 改成 <code>100.96.0.1</code>），重跑一次 <code>sh install.sh --module domain</code> 就会把 dnsmasq 和 DuckDNS 两处的地址一起更新，不用手工改。</p>
+  </div>
+</section>
+
+<!-- ---------- 11 ---------- -->
+<section id="p11">
+  <h2 class="sec"><span class="n">11</span>交给 AI 配成车载盒子</h2>
   <p class="sec-note">到这里刷机结束。剩下的配置不用手工敲，交给能连 SSH 的 AI。</p>
 
   <p>把下面这段整个复制给你的 AI（WorkBuddy / Claude / ChatGPT 等能执行命令的 Agent）：</p>
@@ -560,15 +641,17 @@
 先只做第 0 步体检并把报告发我确认，不要动任何配置。
 确认后按模块一步步来，每步做完把校验结果发我。
 遇到标记为「禁止」的操作一律停下问我。
-另外请检查并修复蓝牙，确认车机能正常连上。</code></pre>
+另外请检查并修复蓝牙，确认车机能正常连上。
+我要在车里用域名访问（特斯拉不认内网 IP），请按第 10 步帮我配 DuckDNS 域名。</code></pre>
 
   <p>AI 会依次做：连 SSH → 体检 → 备份 → <strong>问你要装哪些功能</strong> → 逐项配置 → 逐项校验。</p>
 
   <table>
     <tr><th>功能</th><th>做什么</th><th>谁做的</th></tr>
     <tr><td>基础设置</td><td>时区改回 <code>Asia/Shanghai</code>、关掉 dnsmasq 查询日志、留一份可回滚的备份</td><td>本教程作者</td></tr>
+    <tr><td><strong>免费域名</strong></td><td>DuckDNS 域名 + 本地解析 + Let's Encrypt 证书 + 保活定时任务</td><td>本教程作者</td></tr>
     <tr><td>车内共享</td><td>手机车机直接播盘里的电影，支持拖进度条</td><td>本教程作者</td></tr>
-    <tr><td>HTTPS</td><td>有域名用 Let's Encrypt，没有就自签</td><td>本教程作者</td></tr>
+    <tr><td>HTTPS</td><td>把域名证书接到路由后台和各项服务上（没域名就自签兜底）</td><td>本教程作者</td></tr>
     <tr><td>DashPlay 投屏（开关）</td><td>确认在、设开机自启、查状态，不改本体</td><td><strong>抖音「一只小黑狗」</strong></td></tr>
     <tr><td>悬浮视频窗</td><td>车机画面右下角一个可拖动圆钮，点开看网页或本地视频</td><td>本教程作者（叠加在 DashPlay 上）</td></tr>
     <tr><td>开机查流量</td><td>自动发「查流量」，回复推到微信（约 0.1 元/条）</td><td>本教程作者</td></tr>
@@ -588,9 +671,9 @@
   </div>
 </section>
 
-<!-- ---------- 11 ---------- -->
-<section id="p11">
-  <h2 class="sec"><span class="n">11</span>出问题了怎么救</h2>
+<!-- ---------- 12 ---------- -->
+<section id="p12">
+  <h2 class="sec"><span class="n">12</span>出问题了怎么救</h2>
   <p class="sec-note">按严重程度排，从轻到重。</p>
 
   <h3>情况一：OpenWrt 进不去，但还能连上 WiFi</h3>
@@ -636,9 +719,9 @@
   </table>
 </section>
 
-<!-- ---------- 12 ---------- -->
-<section id="p12">
-  <h2 class="sec"><span class="n">12</span>名词与常见报错</h2>
+<!-- ---------- 13 ---------- -->
+<section id="p13">
+  <h2 class="sec"><span class="n">13</span>名词与常见报错</h2>
   <p class="sec-note">看不懂的词查这里。</p>
 
   <details>

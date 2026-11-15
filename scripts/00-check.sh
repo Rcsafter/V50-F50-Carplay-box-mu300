@@ -91,8 +91,26 @@ bd=$(uci -q get bluetooth.@[0].disabled 2>/dev/null)
 [ "$bd" = "1" ] && warn "uci 里 bluetooth 被禁用（disabled=1）"
 have btmgmt && info "$(btmgmt info 2>/dev/null | head -2 | tr '\n' ' ')"
 
+step "域名"
+dom=$(sed -n 's/^DD_DOM=//p' /etc/v50-box/domain.conf 2>/dev/null | head -1)
+if [ -n "$dom" ]; then
+	ok "已配置域名：$dom"
+	got=$(nslookup "$dom" 127.0.0.1 2>/dev/null | sed -n 's/^Address: \([0-9.]*\)$/\1/p' | tail -1)
+	lip=$(lan_ip)
+	if [ "$got" = "$lip" ]; then
+		ok "车内解析正常：$dom → $got"
+	elif [ -n "$got" ]; then
+		warn "解析到 $got，与盒子地址 $lip 不一致（重跑 --module domain）"
+	else
+		warn "本机解析不出来（等几秒，或重跑 --module domain）"
+	fi
+else
+	warn "没配域名：车机（尤其特斯拉）可能打不开页面、浏览器会提示不安全"
+	info "补配：DUCKDNS_SUB=前缀 DUCKDNS_TOKEN=token sh install.sh --module domain"
+fi
+
 step "证书"
-acme=$(ls /opt/dashplay/state/acme/certs/*/fullchain.cer 2>/dev/null | head -1)
+acme=$(ls /etc/v50-box-tls/fullchain.cer /opt/dashplay/state/acme/certs/*/fullchain.cer 2>/dev/null | head -1)
 if [ -n "$acme" ]; then ok "找到 Let's Encrypt 证书：$acme"; else warn "没有 ACME 证书，只能自签（模块 tls 会处理）"; fi
 if [ -e /etc/uhttpd.crt ]; then
 	subj=$(openssl x509 -in /etc/uhttpd.crt -noout -subject 2>/dev/null | sed 's/subject=//')

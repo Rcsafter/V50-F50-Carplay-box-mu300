@@ -27,8 +27,9 @@ description: 配置中兴 V50 / F50（MU300，展锐 UMS9620）刷好 OpenWrt �
    | 模块 | 功能 | 归属 | 备注 |
    |---|---|---|---|
    | `base` | 时区/日志/备份 | 本仓库 | 建议必装 |
+   | `domain` | 免费域名 + 证书 | 本仓库 | **车机能打开的前提**，见下 |
    | `share` | 车内共享 | 本仓库 | |
-   | `tls` | 局域网 HTTPS | 本仓库 | |
+   | `tls` | 局域网 HTTPS | 本仓库 | 必须在 `domain` 之后 |
    | `dashplay` | 投屏，只设自启 | **抖音「一只小黑狗」** | 镜像需自带 |
    | `hover` | 车机悬浮视频窗 | 本仓库 | 依赖 DashPlay |
    | `traffic` | 开机查流量 | 本仓库 | 约 0.1 元/条 |
@@ -45,6 +46,13 @@ description: 配置中兴 V50 / F50（MU300，展锐 UMS9620）刷好 OpenWrt �
 
    **不要跑不带参数的 `install.sh`**（会进交互问答，AI 环境里卡住），
    **也不要默认 `--all`**（等于替用户勾了选项）。
+
+   `domain` 需要用户自己去 `duckdns.org` 注册一个前缀并拿 token，**不要代注册**：
+   ```sh
+   DUCKDNS_SUB=<前缀> DUCKDNS_TOKEN=<token> sh install.sh --module domain
+   ```
+   特斯拉车机不认 `192.168.x.x` / `100.96.x.x`，且证书签不给 IP —— 用户说"车机打不开"
+   或"浏览器提示不安全"时，先检查这一步做没做。
 
 3. 每装完一个模块，把脚本打印的校验结果转述给用户，不要只说"好了"。
 
@@ -63,7 +71,9 @@ description: 配置中兴 V50 / F50（MU300，展锐 UMS9620）刷好 OpenWrt �
 | 现象 | 说明 |
 |---|---|
 | 重启 dnsmasq 时打印 `udhcpc: no lease, failing` | init 脚本在探测接口类型，`-t 1` 超时即失败，不是断网 |
-| 自签证书访问仍提示不安全 | 自签就是这样。要消除必须用域名 + Let's Encrypt |
+| 自签证书访问仍提示不安全 | 自签就是这样。要消除必须跑 `--module domain` 签 Let's Encrypt |
+| 车机输 IP 打不开 / 弹警告 | 特斯拉不认私网 IP。用 DuckDNS 域名访问，别再用 IP |
+| 域名解析很慢或超时 | 该域名的上游 AAAA 没屏蔽；`--module domain` 会加 `server=/域名/` |
 | `https://<IP>:8443` 证书名不匹配 | 证书是签给域名的，用域名访问才对得上 |
 | `IP:8082/cgi-bin/luci/` 恒 401 | 该前缀只反代控制台自己的 CGI，路由后台走 80 端口或域名 |
 | 用户说"切不回 Android" | 「系统切换器」插件只在 **Android 侧**；OpenWrt → Android 要用系统自带的切换功能，别让用户在插件里找 |
@@ -72,7 +82,10 @@ description: 配置中兴 V50 / F50（MU300，展锐 UMS9620）刷好 OpenWrt �
 
 ```
 /opt/dashplay              投屏与设置（镜像自带）
-/opt/dashplay/state/acme   Let's Encrypt 证书（复用给全站）
+/opt/dashplay/state/acme   Let's Encrypt 证书（镜像自带，可复用给全站）
+/etc/v50-box/domain.conf   域名 + DuckDNS token（600，别打印内容）
+/etc/v50-box/ddns-update.sh 每天更新 A 记录 + 保活（cron 04:17）
+/etc/v50-box-tls           本仓库签下来的证书，30-tls.sh 从这里取
 /mnt/mu300-disk            数据盘，共享目录在这里
 /etc/init.d/share-web      本仓库装的共享服务
 /root/v50-box-backup       /etc 的 tar 备份

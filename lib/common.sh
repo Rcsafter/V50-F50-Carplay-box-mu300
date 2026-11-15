@@ -111,6 +111,13 @@ lan_ip() {
 	ip -4 addr show br-lan 2>/dev/null | sed -n 's/.*inet \([0-9.]*\)\/.*/\1/p' | head -1
 }
 
+# 已配置的域名（35-domain.sh 写在 /etc/v50-box/domain.conf），没配就返回非 0
+domain_of() {
+	d=$(sed -n 's/^DD_DOM=//p' /etc/v50-box/domain.conf 2>/dev/null | head -1)
+	[ -n "$d" ] || return 1
+	echo "$d"
+}
+
 disk_root() {
 	# 找最大的可写挂载点作为数据盘（常见 /mnt/mu300-disk 或 /mnt/sda1）
 	for d in /mnt/mu300-disk /mnt/sda1 /mnt/usb /overlay; do
