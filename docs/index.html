@@ -543,9 +543,17 @@
   </div>
 
   <div class="step">
-    <p class="h"><span class="idx">9.4</span>看一下蓝牙</p>
+    <p class="h"><span class="idx">9.4</span>蓝牙：车机连不上就跑这个模块</p>
     <div class="body">
-      <p>镜像自带的蓝牙有时是坏的（车机连不上、CarPlay 起不来都跟它有关）。原作者的做法是让 AI 检查修复，本仓库也把这个检查放进了体检脚本，所以现在不用管，下一步一起处理。</p>
+      <p>这套镜像的蓝牙<strong>不是标准 bluez 服务</strong>，是四段拼起来的：<code>mu300-bt-run</code> 灌 Marlin3 固件、把蓝牙挂到 <code>/dev/ttyBT0</code>；<code>btup</code> 负责开机兜底上电；<code>bluetoothd</code> 是守护进程；投屏跑起来后还有一层桥接，把真实 MAC 转给系统。</p>
+      <p>所以「蓝牙坏了」通常不是固件坏了，而是这四段里某一段没起来。不用自己猜，让 AI 跑一句就行：</p>
+      <pre><code>sh install.sh --module bluetooth</code></pre>
+      <p>它逐段体检，<strong>只重启出问题的那一段</strong>，最后告诉你车机上该搜哪个名字、地址是多少。蓝牙正常时它什么都不改——我们实测过，跑前跑后进程号完全没变。</p>
+      <p><strong>三个已知的坑</strong>，脚本已经绕过去了，你遇到时知道原因就行：</p>
+      <p>① 新固件的 <code>btmgmt</code> 发不出 mgmt 命令，看到 <code>Operation not supported</code> 不是权限问题，是这工具在这版固件上根本不可用，只能用 <code>hciconfig up</code> + <code>bluetoothctl power on</code>；<br>
+      ② <code>hci0</code> 被 <code>btattach</code> 创建后<strong>默认被 rfkill 挡住</strong>，必须先解 rfkill 再 up，顺序反了永远起不来；<br>
+      ③ 车机记的是 BDADDR。默认地址 <code>02:00:00:96:00:01</code> 一般不用改，只有两台盒子地址撞车才需要固定成别的。</p>
+      <p>连不上时的顺序：车机上<strong>删掉旧的 DashPlay 记录</strong>再重搜 → 还不行重启盒子（能顺便验证 <code>mu300-bt</code> 的开机自启可靠不可靠）。</p>
     </div>
   </div>
 </section>
@@ -645,7 +653,7 @@ https://github.com/Rcsafter/V50-F50-Carplay-box-mu300
 先只做第 0 步体检并把报告发我确认，不要动任何配置。
 确认后按模块一步步来，每步做完把校验结果发我。
 遇到标记为「禁止」的操作一律停下问我。
-另外请检查并修复蓝牙，确认车机能正常连上。
+另外检查一下蓝牙，车机连不上就跑 --module bluetooth。
 我要在车里用域名访问（特斯拉不认内网 IP），请按第 10 步帮我配 DuckDNS 域名。</code></pre>
 
   <p>AI 会依次做：连 SSH → 体检 → 备份 → <strong>问你要装哪些功能</strong> → 逐项配置 → 逐项校验。</p>

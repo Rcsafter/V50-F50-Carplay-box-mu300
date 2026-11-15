@@ -3,7 +3,7 @@
 #
 #   sh install.sh                     体检 + 逐项询问要装哪些功能
 #   sh install.sh --check             只体检，不改任何东西
-#   sh install.sh --all               装免凭据、不花钱的那几项（base domain share tls dashplay hover）
+#   sh install.sh --all               装免凭据、不花钱的那几项（base domain share tls dashplay bluetooth hover）
 #   sh install.sh --module share      只装某个模块（可重复）
 #   sh install.sh --module tls --dry-run  只打印将要执行的操作
 #   sh install.sh --rollback /root/.../etc-xxx.tgz   从备份回滚
@@ -15,9 +15,9 @@ BASE=$(cd "$(dirname "$0")" && pwd)
 . "$BASE/lib/common.sh"
 
 # 全部可选功能，按建议顺序执行（domain 必须在 tls 之前：证书要挂在域名上）
-ALL_FEATURES="base domain share tls dashplay hover traffic tunnel ai"
+ALL_FEATURES="base domain share tls dashplay bluetooth hover traffic tunnel ai"
 # --all 只装这些：不需要额外凭据、不花钱（domain 免费，只要个 DuckDNS token）
-SAFE_SET="base domain share tls dashplay hover"
+SAFE_SET="base domain share tls dashplay bluetooth hover"
 
 MODULES=""
 ALL=0
@@ -32,6 +32,7 @@ mod_title() {
 		share)    echo "车内共享" ;;
 		tls)      echo "HTTPS 证书" ;;
 		dashplay) echo "DashPlay 投屏" ;;
+		bluetooth) echo "蓝牙体检与修复" ;;
 		hover)    echo "车机悬浮视频窗" ;;
 		traffic)  echo "开机查流量" ;;
 		tunnel)   echo "外网隧道" ;;
@@ -47,6 +48,7 @@ mod_desc() {
 		share)    echo "手机车机直接播盘里的电影，支持拖进度条" ;;
 		tls)      echo "让局域网入口不再显示「不安全」" ;;
 		dashplay) echo "投屏主体（作者：抖音「一只小黑狗」），这里只设开机自启" ;;
+		bluetooth) echo "车机连不上/总掉线时，逐段定位并修好（UART 四段式方案）" ;;
 		hover)    echo "车机画面右下角一个可拖动圆钮，点开看视频" ;;
 		traffic)  echo "开机自动发「查流量」短信（约 0.1 元/条，6 小时去重）" ;;
 		tunnel)   echo "cloudflared 挂公网域名（需要你自己的 tunnel 凭据）" ;;
@@ -62,6 +64,7 @@ mod_script() {
 		tls)      echo 30-tls.sh ;;
 		traffic)  echo 40-traffic.sh ;;
 		dashplay) echo 50-dashplay.sh ;;
+		bluetooth) echo 15-bluetooth.sh ;;
 		hover)    echo 60-hover.sh ;;
 		tunnel)   echo 70-tunnel.sh ;;
 		ai)       echo 80-ai.sh ;;

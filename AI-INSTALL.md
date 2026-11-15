@@ -104,13 +104,14 @@ sh install.sh --check
 | `share` | 车内共享，手机车机播盘里的电影 | 本仓库 | 需要 python3 |
 | `tls` | 把证书接到路由后台/共享，HTTPS 不再告警 | 本仓库 | 跟在 `domain` 之后装 |
 | `dashplay` | 投屏主体，这里只设开机自启 | **抖音「一只小黑狗」**（主体非本仓库） | 镜像需自带 `/opt/dashplay` |
+| `bluetooth` | 蓝牙分段体检与修复（车机连不上/总掉线时） | 本仓库 | 只适用 DashPlay 这套 UART 方案 |
 | `hover` | 车机画面悬浮视频窗 | 本仓库（叠加在 DashPlay 上） | 依赖 DashPlay 的注入器 |
 | `traffic` | 开机自动查流量短信 | 本仓库 | **约 0.1 元/条**，6 小时去重 |
 | `tunnel` | 外网隧道（cloudflared） | 本仓库 | 需要用户自己的 tunnel 凭据 |
 | `ai` | 助手进程与密钥健康检查 | 本仓库 | 镜像需自带助手 |
 
 默认建议 `base,domain,share,tls`（顺序不能变：`domain` 必须在 `tls` 前面签出证书）；
-`dashplay`、`hover` 问一句要不要；`traffic`、`tunnel`、`ai` 必须先讲清成本与前提，得到明确同意再装。
+`dashplay`、`hover`、`bluetooth` 问一句要不要；`traffic`、`tunnel`、`ai` 必须先讲清成本与前提，得到明确同意再装。
 
 ```sh
 sh install.sh --list                 # 列出全部功能与说明
@@ -120,6 +121,7 @@ sh install.sh --module share
 sh install.sh --module tls
 sh install.sh --module dashplay      # 用户说要才装
 sh install.sh --module hover         # 用户说要才装
+sh install.sh --module bluetooth     # 车机连不上蓝牙时的分段修复
 sh install.sh --module traffic       # 用户同意付费才装
 ```
 
@@ -249,7 +251,44 @@ netstat -lnt | grep -E ':(18443|18080) '
 特殊情况：如果体检时发现它是**故意关着的**（`enabled=0` 且进程没跑），
 装之前先问用户「你自己关的吗？要打开吗」，不要顺手启动。用户说关着就保持关着。
 
-### 6.7 hover — 车机悬浮视频窗
+### 6.7 bluetooth — 蓝牙（车机连不上 / 总掉线时用）
+
+**先判断是不是这套方案**：`ls /usr/bin/mu300-bt-run /etc/init.d/mu300-bt`。
+两个都不存在，说明是标准 bluez 镜像——别用本模块，改用 `/etc/init.d/bluetooth restart`。
+
+这套镜像的蓝牙是四段拼的，任何一段没起来都表现为「车机搜不到」或「连上就掉」：
+
+| 段 | 进程 / 文件 | 作用 |
+|---|---|---|
+| 1 | `mu300-bt-run` | modprobe `wcn_bsp` / `sprdbt_tty`，灌 Marlin3 固件，`btattach -B /dev/ttyBT0 -P h4` |
+| 2 | `/etc/init.d/btup` | 等 `hci0` 出现后 `hciconfig up` + `bluetoothctl power on`（开机兜底） |
+| 3 | `bluetoothd` | 守护进程，没有它无法配对 |
+| 4 | `linux-bt-bridge/bridge.py` | 投屏跑起来时按需拉起，把真实 MAC 桥给系统（不常驻是正常的） |
+
+跑法：
+
+```sh
+sh install.sh --module bluetooth
+```
+
+**这个模块是安全的**：蓝牙健康时它一个服务都不重启（实测跑前跑后 PID 完全不变），只在检测到某段挂了才动手，且只重启那一段。
+
+三个必须知道的坑，不要试图用别的办法绕过：
+
+1. **`btmgmt` 在这版固件上不可用** —— `btmgmt power on` 会报 `Operation not supported`，不是权限问题。提权只能先 `hciconfig hci0 up`，再 `bluetoothctl power on`。
+2. **rfkill 顺序不能反** —— `hci0` 被 `btattach` 创建后默认 `soft=1`（被挡）。必须先写 `echo 0 > /sys/class/rfkill/rfkillN/soft`，再 `hciconfig up`；顺序反了永远起不来。
+3. **BDADDR 是车机的配对依据** —— 默认 `02:00:00:96:00:01`，一般不用改。真要改得同时写 `/etc/mu300/bluetooth.conf` 和 `/var/lib/mu300/bdaddr`，改完必须在车机上删掉旧的 DashPlay 记录重新配对。
+
+校验：
+
+```sh
+hciconfig hci0 | grep "UP RUNNING"    # 必须 grep 得到
+ps w | grep -c "[b]luetoothd"         # 至少 1
+```
+
+连不上的排查顺序：车机删旧记录重搜 → `/etc/init.d/mu300-bt restart` → 重启盒子（顺便验证开机自启可靠不可靠）。
+
+### 6.8 hover — 车机悬浮视频窗
 
 做的事：给 `dashplay-switch` 补 `video-on/off/status`、把三个素材文件放进 `/etc/dashplay-hud`、
 写 UCI `dashplay.main.video_pane`、加 cron 每 5 分钟补注入一次。
@@ -270,7 +309,7 @@ crontab -l | grep playport-video-inject
 
 **不要自己编素材、不要直接改 DashPlay 的车机页面文件**，那是原作者的东西。
 
-### 6.8 tunnel — 外网隧道
+### 6.9 tunnel — 外网隧道
 
 做的事：生成 `/etc/init.d/cloudflared`（`START=99`，启动前轮询 dnsmasq 直到能解析
 `argotunnel.com`）、把配置和凭据权限收到 600、启动并校验有没有 `Registered tunnel connection`。
@@ -289,7 +328,7 @@ logread | grep -i cloudflared | tail
 - 必须提醒用户「不要把 80 端口直接挂到隧道」，`/www/cgi-bin/cgi-exec` 能执行任意命令；
 - 域名解析在 Cloudflare 后台配置，不归脚本管。
 
-### 6.9 ai — 助手健康检查
+### 6.10 ai — 助手健康检查
 
 做的事：把 `/etc/picoclaw/.security.yml` 收紧到 600、确认里面配了 api_key、启动并看进程。
 

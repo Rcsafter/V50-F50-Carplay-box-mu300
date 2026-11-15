@@ -29,7 +29,7 @@ https://github.com/Rcsafter/V50-F50-Carplay-box-mu300
 
 先只做第 0 步体检并把报告发我确认，不要动任何配置。确认后按模块一步步来，
 每步做完把校验结果发我。遇到标记为「禁止」的操作一律停下问我。
-另外请检查并修复蓝牙，确认车机能正常连上。
+另外检查一下蓝牙，车机连不上就跑 --module bluetooth。
 
 我要在车里用域名访问（特斯拉不认内网 IP），请帮我配一个 DuckDNS 免费域名，
 token 我一会儿单独给你。
@@ -123,6 +123,7 @@ install.sh                主入口：体检 / 交互选功能 / 分模块安装
 AI-INSTALL.md             给 AI Agent 的操作手册（禁止事项、逐项征询、校验点、回滚）
 scripts/00-check.sh       体检报告（只读，不改任何东西；含蓝牙状态）
 scripts/10-base.sh        时区、日志体积、主机名、/etc 备份
+scripts/15-bluetooth.sh   蓝牙分段体检与修复（只适用 DashPlay 那套 UART 方案）
 scripts/20-share.sh       车内共享（装 procd 服务，自动带 HTTPS 端口）
 scripts/30-tls.sh         HTTPS 接线（用 domain 签的证书，没有就自签兜底）
 scripts/35-domain.sh      免费域名：DuckDNS + 本地解析 + Let's Encrypt + 保活
