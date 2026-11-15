@@ -47,7 +47,8 @@ description: 配置中兴 V50 / F50（MU300，展锐 UMS9620）刷好 OpenWrt �
    **不要跑不带参数的 `install.sh`**（会进交互问答，AI 环境里卡住），
    **也不要默认 `--all`**（等于替用户勾了选项）。
 
-   `domain` 需要用户自己去 `duckdns.org` 注册一个前缀并拿 token，**不要代注册**：
+   `domain` 需要用户自己拿前缀和 token —— DuckDNS **没有独立账号，是借 GitHub 登录的**
+   （先有 GitHub 账号，再 `sign in with GitHub`）。**不要代注册、不要代登录**：
    ```sh
    DUCKDNS_SUB=<前缀> DUCKDNS_TOKEN=<token> sh install.sh --module domain
    ```

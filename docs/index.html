@@ -566,11 +566,14 @@
   <div class="step">
     <p class="h"><span class="idx">10.1</span>注册 DuckDNS（免费，3 分钟，不用备案）</p>
     <div class="body">
+      <p><strong>DuckDNS 不单独注册账号，是借 GitHub 登录的。</strong>所以顺序是：先有 GitHub 账号，再拿它登录 DuckDNS。</p>
       <ul>
-        <li>打开 <span class="path">https://www.duckdns.org/</span>，用 Google / GitHub / 邮箱随便一种方式登录（不用给手机号）。</li>
-        <li>在页面顶上 <code>subdomain</code> 输入框里填一个还没被占的前缀，比如 <code>v50tesla</code>，点 <code>add domain</code>。</li>
-        <li>页面上会出现这行 <code>v50tesla.duckdns.org</code>，开头那串 <code>token=xxxxxxxx-xxxx-...</code> 就是它的密码，<strong>复制下来，别发群里</strong>。</li>
+        <li>没有 GitHub 账号：打开 <span class="path">https://github.com/signup</span>，用<strong>邮箱</strong>注册一个（用户名、邮箱、密码三步，收一封验证邮件即可；不想填真名，随便填也行）。</li>
+        <li>打开 <span class="path">https://www.duckdns.org/</span>，点页面上的 <code>sign in with GitHub</code>，登录后允许授权（只读取基本资料，不用给手机号）。</li>
+        <li>回到首页，在顶部 <code>subdomain</code> 输入框里填一个没被占的前缀，比如 <code>v50tesla</code>，点 <code>add domain</code>。</li>
+        <li>页面列表里会出现 <code>v50tesla.duckdns.org</code>，同一行下面那串 <code>token=xxxxxxxx-xxxx-xxxx-...</code> 就是它的密码，<strong>复制下来，别发群里</strong>（以后想再看，首页顶部一直显示）。</li>
       </ul>
+      <p>也可以用 Google 账号登录，效果一样；国内 GitHub 访问不稳的话再考虑那条路。</p>
       <p>不用买域名、不用实名、不用备案。DuckDNS 的规则是「30 天完全没更新就回收」，下一步的脚本会在盒子上装一个每天更新一次的定时任务，所以放着不管也不会过期。</p>
     </div>
   </div>

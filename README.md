@@ -92,7 +92,7 @@ sh install.sh --all           # 只装免凭据、不花钱的那几项
 
 | 做法 | 命令 |
 |---|---|
-| 注册前缀（3 分钟，不用备案不用买） | 打开 `https://www.duckdns.org/`，填前缀，复制 token |
+| 拿一个前缀（3 分钟，不用备案不用买） | DuckDNS 借 GitHub 登录：先有 GitHub 账号（邮箱注册），再在 `https://www.duckdns.org/` 点 `sign in with GitHub`，填前缀、复制 token |
 | 让盒子接管这个域名 | `DUCKDNS_SUB=前缀 DUCKDNS_TOKEN=token sh install.sh --module domain` |
 | 把证书接到各项服务 | `sh install.sh --module tls` |
 

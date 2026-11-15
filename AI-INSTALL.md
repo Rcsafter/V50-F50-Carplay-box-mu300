@@ -146,9 +146,10 @@ uci get dhcp.@dnsmasq[0].logqueries     # 0
 
 要用户提供两样东西（都免费）：
 
-1. 打开 `https://www.duckdns.org/`，用任意方式登录，在 `subdomain` 框里填一个没被占的前缀（例如 `v50car`），
-   点 `add domain`。
-2. 页面上那串 `token=xxxxxxxx-xxxx-xxxx-...` 复制出来。
+1. DuckDNS 没有独立账号，**是借 GitHub 登录的**：先让用户准备一个 GitHub 账号（用邮箱在
+   `https://github.com/signup` 注册即可），再到 `https://www.duckdns.org/` 点 `sign in with GitHub` 授权。
+2. 回到首页，在 `subdomain` 框里填一个没被占的前缀（例如 `v50car`），点 `add domain`。
+3. 列表里那串 `token=xxxxxxxx-xxxx-xxxx-...` 复制出来（首页顶部一直显示，随时能再看）。
 
 **不要替用户注册**，也不要让用户把 token 发到群里。拿到后这样跑：
 
