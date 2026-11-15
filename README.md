@@ -53,7 +53,7 @@ tar xzf box.tar.gz && cd V50-F50-Carplay-box-mu300-main
 # 2. 只体检，不改任何东西
 sh install.sh --check
 
-# 3. 按需安装（不带参数 = 逐项询问；--all = base domain share tls dashplay hover）
+# 3. 按需安装（不带参数 = 逐项询问；--all = base domain share tls dashplay bluetooth hover）
 sh install.sh --all
 ```
 
@@ -79,7 +79,7 @@ sh install.sh                 # 逐项询问（推荐）
 sh install.sh --all           # 只装免凭据、不花钱的那几项
 ```
 
-> `--all` = `base domain share tls dashplay hover`。`traffic`（要花短信费）、`tunnel`（要凭据）、
+> `--all` = `base domain share tls dashplay bluetooth hover`。`traffic`（要花短信费）、`tunnel`（要凭据）、
 > `ai`（要有助手）必须你明确指定，安装器不会替你勾。
 >
 > `domain` 需要一个免费的 DuckDNS token（注册 3 分钟，不用备案）。没给 token 时这个模块会自己跳过，
