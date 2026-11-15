@@ -35,7 +35,7 @@ function endDrag(){if(!g)return;g=null;sv(parseFloat(pane.style.left),parseFloat
 window.addEventListener('pointerup',endDrag,true);window.addEventListener('pointercancel',endDrag,true);
 bar.addEventListener('dblclick',function(e){if(e.target.tagName==='INPUT'||e.target.tagName==='BUTTON')return;if(full){full=false;var k=keep||{l:innerWidth-496,t:innerHeight-300,w:480};fit(k.l,k.t,k.w)}else{keep={l:parseFloat(pane.style.left),t:parseFloat(pane.style.top),w:W};full=true;fit(8,8,innerWidth-16)}});
 tap(go,function(){play(inp.value)});
-tap(vshr,function(){seg(true);cur='https://v50dashplay.duckdns.org:8443/';fr.src=cur;show();if(tip)tip.style.display='none'});
+tap(vshr,function(){seg(true);var p=location.protocol==='https:'?'8443':'8080';cur=location.protocol+'//'+location.hostname+':'+p+'/';fr.src=cur;show();if(tip)tip.style.display='none'});
 tap(vnet,function(){seg(false);try{inp.focus()}catch(e){}});
 tap(cls,close);
 tap(minb,function(){var m=pane.classList.toggle('min');minb.textContent=m?'\u25A2':'\u2013'});
