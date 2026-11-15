@@ -1,4 +1,4 @@
-# V50 车载盒子 · 一键安装
+# V50 / F50 · CarPlay Box 一键安装
 
 把**中兴 V50 / F50**（同一台机器，内部型号都是 `MU300`，芯片展锐 UMS9620）这类 5G CPE
 刷成 OpenWrt 之后，用一条命令配成车上真正能用的娱乐盒子：
@@ -23,7 +23,7 @@
 
 ```text
 请读这个仓库里的 AI-INSTALL.md，帮我配置车载盒子：
-https://github.com/Rcsafter/v50-box
+https://github.com/Rcsafter/V50-F50-carplayBox
 
 先只做第 0 步体检并把报告发我确认，不要动任何配置。确认后按模块一步步来，
 每步做完把校验结果发我。遇到标记为「禁止」的操作一律停下问我。
@@ -45,8 +45,8 @@ AI 会依次做：连 SSH → 跑体检 → 备份 → 按模块配置 → 逐�
 
 ```sh
 # 1. 拉代码（盒子没装 git 就在电脑上 scp 上来，或用发来的 zip）
-wget -O v50-box.tar.gz https://github.com/Rcsafter/v50-box/archive/refs/heads/main.tar.gz
-tar xzf v50-box.tar.gz && cd v50-box-main
+wget -O box.tar.gz https://github.com/Rcsafter/V50-F50-carplayBox/archive/refs/heads/main.tar.gz
+tar xzf box.tar.gz && cd V50-F50-carplayBox-main
 
 # 2. 只体检，不改任何东西
 sh install.sh --check
