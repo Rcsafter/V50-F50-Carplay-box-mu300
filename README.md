@@ -1,5 +1,7 @@
 # V50 / F50 · CarPlay Box 一键安装
 
+**📖 在线教程（手机可直接打开）**：https://rcsafter.github.io/V50-F50-Carplay-box-mu300/
+
 把**中兴 V50 / F50**（同一台机器，内部型号都是 `MU300`，芯片展锐 UMS9620）这类 5G CPE
 刷成 OpenWrt 之后，用一条命令配成车上真正能用的娱乐盒子：
 
