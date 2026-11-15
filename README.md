@@ -19,11 +19,11 @@
 ## 一、最快路径：让 AI 帮你装
 
 把下面这段整个复制给你的 AI（WorkBuddy / Claude / ChatGPT 等**能连 SSH 的 Agent**），
-把 `<仓库地址>` 换成实际地址（或直接把 zip 发给它）：
+也可以直接把 zip 发给它。整段复制：
 
 ```text
 请读这个仓库里的 AI-INSTALL.md，帮我配置车载盒子：
-<仓库地址>
+https://github.com/Rcsafter/v50-box
 
 先只做第 0 步体检并把报告发我确认，不要动任何配置。确认后按模块一步步来，
 每步做完把校验结果发我。遇到标记为「禁止」的操作一律停下问我。
@@ -44,8 +44,8 @@ AI 会依次做：连 SSH → 跑体检 → 备份 → 按模块配置 → 逐�
 盒子上开 SSH（默认 `root@100.96.0.1`，密码在机器背面或你自己设的），然后：
 
 ```sh
-# 1. 拉代码（把 <你的账号> 换成实际仓库；盒子没装 git 就在电脑上 scp 上来，或用发来的 zip）
-wget -O v50-box.tar.gz https://github.com/<你的账号>/v50-box/archive/refs/heads/main.tar.gz
+# 1. 拉代码（盒子没装 git 就在电脑上 scp 上来，或用发来的 zip）
+wget -O v50-box.tar.gz https://github.com/Rcsafter/v50-box/archive/refs/heads/main.tar.gz
 tar xzf v50-box.tar.gz && cd v50-box-main
 
 # 2. 只体检，不改任何东西
